@@ -1,0 +1,2585 @@
+type AccountInfo {
+  company_name: String
+  first_name: String
+  last_name: String
+  location: String
+  us_state: String
+}
+
+enum AccountTypeEnum {
+  DEFAULT
+  DEFAULT_CENTS
+  ESCROW
+  ESCROW_CENTS
+}
+
+enum AddressType {
+  p2pkh
+  p2sh
+  p2tr
+  p2wpkh
+  p2wsh
+}
+
+type AllTimeData {
+  series: [AllTimeDataSeries!]!
+}
+
+type AllTimeDataSeries {
+  name: AllTimeDataSource!
+  series: [AllTimeSeries!]!
+}
+
+enum AllTimeDataSource {
+  AMBOSS
+  BITCOIN_VISUALS
+  LNNODEINSIGHT
+  MEMPOOL
+}
+
+type AllTimeSeries {
+  active_channels: Float
+  active_nodes: Float
+  date: String!
+  fiat_capacity(currency: CurrencyEnum!): String
+  id: String!
+  total_capacity: Float
+}
+
+type AmbossEdgeInfo {
+  is_favorite: Boolean!
+  number_favorites: Float!
+}
+
+type AmbossInfo {
+  hydro: HydroInfo!
+  is_claimed: Boolean!
+  is_favorite: Boolean!
+  market: MarketInfo!
+  monitoring: AmbossMonitoring!
+  new_channel_gossip_delta: NewChannelGosspipDelta!
+  notifications: AmbossNotifications!
+  number_favorites: Float!
+  subscription_type: SubscriptionType
+}
+
+type AmbossMonitoring {
+  healthcheck: NodeHealthChecks
+  reported_balance: ReportedBalancePercent
+}
+
+type AmbossNotifications {
+  number_announcement_peers: Float!
+  number_announcement_subscribers: Float!
+  number_subscribers: Float!
+}
+
+type AmbossStats {
+  hydro_stats: HydroStats!
+  id: String!
+  magma_info: MagmaInfo!
+  simulations: SimulationStats!
+}
+
+type AmbucksBalances {
+  account: AccountTypeEnum!
+  balance: Float!
+}
+
+enum AmbucksBundles {
+  BUNDLE_1
+  BUNDLE_2
+  BUNDLE_3
+}
+
+type AmbucksBundlesBatch {
+  bundles: [AmbucksBundlesInfo!]!
+  quoteId: String!
+}
+
+type AmbucksBundlesInfo {
+  ambucks_amount: Float!
+  bundle: AmbucksBundles!
+  id: String!
+  name: String!
+  sats_amount: Float!
+  usd_cents_amount: Float!
+  usd_cents_fee: Float!
+}
+
+type AmbucksPayload {
+  reason: TransactionReason!
+}
+
+type AmbucksTx {
+  account_type: AccountTypeEnum!
+  amount: Float!
+  created_at: String!
+  description: String!
+  id: String!
+  type: AmbucksTxType!
+}
+
+enum AmbucksTxType {
+  CREDIT
+  DEBIT
+}
+
+type ApiKey {
+  account: String!
+  apikey: String!
+  created_at: String!
+  details: String
+  expires: String!
+  pubkey: String
+}
+
+type BackupDownload {
+  backup: String!
+}
+
+type BackupItem {
+  byte_size: Float!
+  created_at: String!
+  id: String!
+}
+
+type Balance {
+  balanceLimit: ConditionOperator!
+  frequencyMinutes: Float!
+  percentage: Float!
+}
+
+input BalanceNotificationInput {
+  balanceLimit: ConditionOperator!
+  frequencyMinutes: Float!
+  percentage: Float!
+}
+
+enum BalanceRange {
+  BOTTOM
+  MIDDLE
+  TOP
+}
+
+type BaseNode {
+  addresses: [NodeAddress!]!
+  alias: String!
+  color: String!
+  features: [Feature!]!
+  last_update: Float!
+  pub_key: String!
+}
+
+enum BitcoinNetwork {
+  Bitcoin
+  Regtest
+  Signet
+  Testnet
+}
+
+type BitcoinTxInfo {
+  outputs: [Vout!]!
+}
+
+type Buckets {
+  local_buckets: [FeeBucket!]!
+  remote_buckets: [FeeBucket!]!
+}
+
+input BusinessInput {
+  company_email: String!
+  company_name: String!
+  first_name: String!
+  last_name: String!
+}
+
+type Channel {
+  block_age: Float
+  capacity: String!
+  chan_point: String!
+  closure_info: ClosedEdge
+  last_update: Float!
+  last_update_date: String!
+  long_channel_id: String!
+  node1_policy: EdgePolicy
+  node1_pub: String!
+  node1_report: ReportedChannel
+  node2_info: ChannelNodeInfo!
+  node2_policy: EdgePolicy
+  node2_pub: String!
+  short_channel_id: String!
+  transactions: ChannelTransactions!
+}
+
+input ChannelBalanceInputType {
+  local: String!
+  total: String!
+}
+
+input ChannelBalancePushInput {
+  channelBalance: ChannelBalanceInputType
+  channels: [ChannelBalancesInput!]
+  onchainBalance: OnChainBalanceInput
+  pendingChannelBalance: ChannelBalanceInputType
+  signature: String!
+  timestamp: String!
+}
+
+type ChannelBalanceSettingsInfo {
+  channel_balance_view_type: ChannelBalanceViewType
+  node_balance_view_type: ChannelBalanceViewType
+}
+
+input ChannelBalanceSettingsInput {
+  channel_balance_view_type: ChannelBalanceViewType!
+}
+
+enum ChannelBalanceViewType {
+  PRIVATE
+  PUBLIC
+  RANGE
+}
+
+input ChannelBalancesInput {
+  balance: String!
+  capacity: String!
+  chan_id: String!
+}
+
+type ChannelCapacity {
+  block_age: Float!
+  capacity: String!
+  channel_id: String!
+  decoded_channel_id: String!
+  last_update: String!
+  node_info: NodeInfo
+  peer_policy: EdgePolicy
+  peer_pubkey: String!
+  policy: EdgePolicy
+}
+
+type ChannelChange {
+  amount: [NodeChannelChange!]!
+  capacity: [NodeChannelChange!]!
+}
+
+enum ChannelClosureType {
+  FORCED
+  MUTUAL
+  PENALTY
+  UNKNOWN
+}
+
+type ChannelClosureTypes {
+  amount: String!
+  percent: String!
+  type: ChannelClosureType!
+}
+
+type ChannelEdgeInfo {
+  node1_info: ChannelNodeInfo
+  node1_pub: String!
+  node2_info: ChannelNodeInfo
+  node2_pub: String!
+}
+
+type ChannelFeeSeries {
+  date: String!
+  forced_closed_fees: String!
+  mutual_closed_fees: String!
+  open_channels_batch_fees: String!
+  open_channels_fees: String!
+  penalty_closed_fees: String!
+  unknown_closed_fees: String!
+}
+
+type ChannelInfo {
+  channel_info: NodeChannelInfo!
+  channel_list(order: OrderChannelInput = {by: capacity, direction: DESC}, page: PageInput = {limit: 10, offset: 0}): ChannelList!
+  fee_info(timeRange: SnapshotTimeRangeEnum = TODAY): NodeFeeInfo
+  num_channels: Float!
+  total_capacity: String!
+}
+
+type ChannelList {
+  list: [Channel!]!
+  pagination: Pagination!
+}
+
+enum ChannelMetricsKeys {
+  corrected_mean
+  count
+  max
+  mean
+  median
+  min
+  std
+  sum
+  weighted_corrected_mean
+  weighted_mean
+}
+
+type ChannelNodeInfo {
+  metrics: GraphMetrics
+  node: BaseNode
+}
+
+type ChannelSeries {
+  created_at: String!
+  forced_closed_channels: String!
+  forced_closed_channels_capacity: String!
+  mutual_closed_channels: String!
+  mutual_closed_channels_capacity: String!
+  open_channels: String!
+  open_channels_capacity: String!
+  penalty_closed_channels: String!
+  penalty_closed_channels_capacity: String!
+  unknown_closed_channels: String!
+  unknown_closed_channels_capacity: String!
+}
+
+type ChannelTransaction {
+  fee: String
+  id: String!
+  vin_addresses: [String!]
+  vout: Float
+  vout_addresses: [String!]
+}
+
+type ChannelTransactions {
+  close_transaction: ChannelTransaction
+  open_transaction: OpenChannelTransaction
+}
+
+input CheckStatusIntervalInput {
+  is_public: Boolean!
+  status_interval: Int!
+}
+
+type ClosedChannelInfo {
+  list: [Channel!]!
+  pagination: Pagination!
+  total_count: Float!
+}
+
+type ClosedEdge {
+  close_transaction_id: String
+  closed_date: String!
+  closed_for_blocks: Float
+  closed_height: Float!
+  closure_type: ChannelClosureType
+}
+
+type Community {
+  background: String!
+  border: String!
+  description: String
+  link: String
+  name: String!
+  pubId: String!
+}
+
+type CommunityMember {
+  community: String!
+  pubkey: String!
+}
+
+type CommunityPost {
+  created_at: String!
+  id: String!
+  message: String!
+  pubkey: String!
+  replies: [CommunityPost!]!
+}
+
+input CommunityPostInput {
+  community_id: String!
+  message: String!
+  reply_to_post_id: String
+}
+
+type CommunityRequestResponse {
+  approvals: [String!]!
+  community: Community!
+  member: Boolean!
+  pubId: String!
+  pubkey: String!
+  requiredApprovals: Float!
+}
+
+type CommunityRequestsResponse {
+  approvals: Float!
+  pubId: String!
+  pubkey: String!
+  requiredApprovals: Float!
+}
+
+type CommunitySeries {
+  insight_info: LnNodeInsightInfo!
+  terminal_scores: TerminalInfo!
+}
+
+type CommunityStats {
+  total_capacity: String!
+  total_channels: String!
+}
+
+type CommunityType {
+  community_stats: CommunityStats!
+  details: Community!
+  is_member: Boolean!
+  member_count: Float!
+  member_list: [String!]!
+  nostr_pubkeys: [String!]!
+}
+
+enum ConditionOperator {
+  EQUAL_TO
+  GREATER_THAN
+  GREATER_THAN_OR_EQUAL_TO
+  LESS_THAN
+  LESS_THAN_OR_EQUAL_TO
+  NOT_EQUAL_TO
+}
+
+enum ConditionValueType {
+  MULTI
+  NUMBER
+}
+
+enum ContactInterestType {
+  ACCOUNTING_AND_AUDITABILITY
+  DISCOVERABILITY
+  LIQUIDITY_AND_CHANNEL_MANAGEMENT
+  PAYMENTS_OPTIMIZATION
+  RISK_AND_COMPLIANCE
+  YIELD_GENERATION
+}
+
+input ContactTeamInput {
+  company_name: String!
+  company_website: String
+  email: String!
+  first_name: String!
+  interest: ContactInterestType!
+  job_title: String!
+  last_name: String!
+  message: String
+  phone: String
+}
+
+input CreateAccountInput {
+  business_input: BusinessInput
+  individual_input: IndividualInput
+}
+
+input CreateCommunityInput {
+  description: String
+  link: String
+  name: String!
+  pubkey: String!
+}
+
+input CreateLiquidityPlanInput {
+  external_node_data_plan: ExternalNodeDataPlanInput
+  one_time_plan: CreateOneTimePlanInput
+  recurring_plan: CreateRecurringPlanInput
+  value_check_plan: CreateValuePlanInput
+}
+
+input CreateOffer {
+  base_fee: Float
+  base_fee_cap: Float
+  conditions: [OfferConditionsInput!]
+  fee_rate: Float
+  fee_rate_cap: Float
+  max_size: Float
+  min_block_length: Float
+  min_size: Float
+  offer_side: OfferSide
+  offer_type: MarketOfferType
+  onchain_multiplier: Float
+  onchain_priority: OnchainPriority
+  total_size: Float!
+}
+
+input CreateOneTimePlanInput {
+  date: String!
+  demand: Float!
+  metric: LiquidityTriggerMetrics!
+  pubkey: String
+}
+
+input CreateOrder {
+  invoice: String
+  offer: String!
+  on_chain_address: String
+  payment_method: OrderPaymentMethod = SATS
+  pubkey: String
+  size: Float!
+}
+
+input CreateRecurringPlanInput {
+  demand: Float!
+  frequency_minutes: Float!
+  metric: LiquidityTriggerMetrics!
+  pubkey: String
+}
+
+type CreateSubscriptionTransaction {
+  transaction_id: String!
+}
+
+input CreateValuePlanInput {
+  frequency_minutes: Float!
+  metric: LiquidityTriggerMetrics!
+  pubkey: String
+  trigger_value: Float!
+}
+
+type CreditsUsage {
+  months: [MonthCreditsUsage!]!
+}
+
+enum CurrencyEnum {
+  EUR
+  USD
+}
+
+type CurrentVotes {
+  node_type: VoteChoiceType
+}
+
+type DecodingDetails {
+  invoice: InvoiceDetails!
+  ln_address: LightningAddressDetails
+  lnurl: LnurlDetails
+}
+
+input DisableNotificationEventInput {
+  id: String!
+  notificationType: NotificationType!
+}
+
+type EdgeChange {
+  capacity: String!
+  date: String!
+}
+
+type EdgeChangeResume {
+  amount: String!
+  capacity: String!
+  lostAmount: String!
+  lostCapacity: String!
+  newAmount: String!
+  newCapacity: String!
+}
+
+type EdgeForensics {
+  close_vin_addresses: [String!]
+  close_vout_addresses: [String!]
+  funding_ratio: String
+  node1_closing_balance: String
+  node1_funding_balance: String
+  node2_closing_balance: String
+  node2_funding_balance: String
+  open_vin_addresses: [String!]
+  open_vout_addresses: [String!]
+}
+
+type EdgeGraph {
+  info: LnEdge!
+  policy_history(from: String): PolicyHistory!
+}
+
+type EdgeHistoryDetails {
+  fee_base_msat: String!
+  fee_rate_milli_msat: String!
+  inbound_fee_base_msat: String!
+  inbound_fee_rate_milli_msat: String!
+  max_htlc: String
+  min_htlc: String
+  updated_at: String!
+}
+
+type EdgeHistoryInfo {
+  list: [EdgeHistoryDetails!]!
+}
+
+type EdgeInfo {
+  amboss: AmbossEdgeInfo!
+  forensics: EdgeForensics
+  graph: EdgeGraph
+  long_channel_id: String!
+  short_channel_id: String!
+}
+
+type EdgeInfoBatch {
+  info: ChannelEdgeInfo
+  long_channel_id: String
+  short_channel_id: String
+}
+
+type EdgePolicy {
+  disabled: Boolean!
+  fee_base_msat: String!
+  fee_rate_milli_msat: String!
+  inbound_fee_base_msat: String!
+  inbound_fee_rate_milli_msat: String!
+  last_update: String!
+  max_htlc_msat: String!
+  min_htlc: String!
+  time_lock_delta: Float!
+}
+
+enum EmailType {
+  VERIFICATION_ACCOUNT
+  VERIFICATION_ACCOUNT_EMAIL
+  VERIFICATION_EMAIL
+  VERIFICATION_SIGNIN
+  VERIFICATION_TEAM_INVITE
+}
+
+type EnrichedSocial {
+  pubkey: String!
+}
+
+enum EventType {
+  AMBOSS
+  AUTOMATED_LIQUIDITY
+  BALANCE
+  CLOSECHANNEL
+  GHOST
+  HEALTHCHECK
+  MAGMA
+  ONCHAIN
+  OPENCHANNEL
+  PEER_ANNOUNCEMENT
+  PEER_LIQUIDITY
+  SUBSCRIPTION_ANNOUNCEMENT
+  WORKFLOW
+}
+
+type EventTypeNotifications {
+  event_type: EventType!
+  notifications_state: [NotificationState!]!
+}
+
+input ExternalNodeDataInput {
+  metric: ExternalNodeDataMetrics!
+  pubkey: String!
+  value: Float!
+}
+
+enum ExternalNodeDataMetrics {
+  INBOUND_LIQUIDITY
+}
+
+input ExternalNodeDataPlanInput {
+  frequency_minutes: Float!
+  metric: LiquidityTriggerMetrics!
+  pubkey: String!
+  trigger_value: Float!
+}
+
+input ExtraBusinessDataInput {
+  business_type: String!
+  incorporation_date: String!
+  incorporation_location: String!
+  incorporation_us_state: String
+  operation_location: String!
+  operation_us_state: String
+  tax_id: String!
+}
+
+type Favorites {
+  edges: [String!]!
+  nodes: [String!]!
+}
+
+type Feature {
+  feature_id: String!
+  is_known: Boolean!
+  is_required: Boolean!
+  name: String!
+}
+
+type FeeBucket {
+  amount_channels: Float!
+  bucket_breakdown: [FeeBucket!]!
+  bucket_label: String!
+  index: Float!
+  max_limit: String!
+  min_limit: String!
+  total_capacity: String!
+}
+
+type FeeMetrics {
+  max: String!
+  mean: String!
+  median: String!
+  min: String!
+  sd: String!
+  weighted: String!
+  weighted_corrected: String!
+}
+
+type GeneralNetworkMetrics {
+  all_time_series: AllTimeData!
+  channel_fees_series(from: String!): [ChannelFeeSeries!]!
+  channel_series(from: String!): [ChannelSeries!]!
+  historical_series(from: String!, metric: NetworkMetricsKeys!, submetric: ChannelMetricsKeys): [[String!]!]!
+  historical_snapshots(timeRange: SnapshotTimeRangeEnum = ONE_DAY): HistoricalSnapshots!
+  id: String!
+  ip_info: IpInfoStats!
+}
+
+type GhostAddress {
+  username: String!
+}
+
+type GhostConfig {
+  is_disabled: Boolean!
+  max_msat: Float!
+  min_msat: Float!
+  nostr_pubkey: String
+}
+
+input GhostConfigInput {
+  is_disabled: Boolean
+  max_msat: Float
+  min_msat: Float
+  nostr_npub: String
+  nostr_pubkey: String
+}
+
+type GhostPayment {
+  payment_amount: String!
+  preimage: String!
+}
+
+input GhostPaymentInput {
+  payment_hash: String!
+  signature: String!
+}
+
+type GraphInfo {
+  channel_closure_types(from: String!): [ChannelClosureTypes!]
+  channels: ChannelInfo
+  closed_channels(page: PageInput = {limit: 10, offset: 0}): ClosedChannelInfo
+  fee_buckets: Buckets
+
+  """Last time we received a gossip update from a channel from this node"""
+  last_channel_update: String
+
+  """Last time we received a gossip update from this node"""
+  last_update: String
+  metrics: GraphMetrics
+  node: BaseNode
+}
+
+type GraphMetrics {
+  capacity: String!
+  capacity_rank: Float!
+  capacity_rank_change: RankChange!
+  channels: Float!
+  channels_rank: Float!
+  channels_rank_change: RankChange!
+}
+
+type HealthCheckDelta {
+  created_at: String!
+  health_status: HealthStatus!
+  last_ping_time: String
+}
+
+type HealthCheckInfo {
+  check_status_interval: Float
+  is_public: Boolean
+}
+
+type HealthPercentUptime {
+  day: String
+  month: String
+  total: String
+  week: String
+}
+
+enum HealthStatus {
+  OFFLINE
+  ONLINE
+}
+
+type HistoricalChannelBalanceSummary {
+  capacity: String
+  close_balance: String
+  id: String!
+  interval_start: String!
+  max_balance: String
+  min_balance: String
+  open_balance: String
+  total_inflow: String
+  total_outflow: String
+}
+
+type HistoricalChannelBalances {
+  chan_id: String!
+  has_pushed: Boolean!
+  id: String!
+  reported_balances: [HistoricalChannelBalanceSummary!]!
+}
+
+type HistoricalMetrics {
+  corrected_mean: String!
+  count: String!
+  id: String!
+  max: String!
+  mean: String!
+  median: String!
+  min: String!
+  std: String!
+  sum: String!
+}
+
+type HistoricalNodeBalance {
+  channel_amount: String
+  confirmed_onchain: String
+  id: String!
+  interval_start: String!
+  local_amount_confirmed: String
+  local_amount_pending: String
+  pending_onchain: String
+  total_amount_confirmed: String
+  total_amount_pending: String
+}
+
+type HistoricalNodeBalanceChange {
+  channel_amount_change: String
+  id: String!
+  interval_start: String!
+  local_channel_balance_change: String
+  onchain_balance_change: String
+  pending_channel_balance_change: String
+  pending_onchain_balance_change: String
+  pending_total_channel_balance_change: String
+  total_channel_capacity_change: String
+}
+
+type HistoricalNodeMetrics {
+  channel_series(from: String!): [ChannelSeries!]!
+  community_series: CommunitySeries!
+  historical_series(from: String!, metric: NodeMetricsKeys!, submetric: ChannelMetricsKeys): [[String!]!]!
+}
+
+type HistoricalSnapshots {
+  channels: MetricsAggregate
+  id: String!
+  nodes: NodeCount
+}
+
+type HistoricalVolume {
+  amount: String!
+  created_at: String!
+}
+
+type HydroInfo {
+  is_managed: Boolean!
+}
+
+type HydroStats {
+  depth: String!
+  id: String!
+  managed_liquidity: String!
+  managed_nodes: Float!
+  volume: String!
+}
+
+input IndividualInput {
+  date_of_birth: String
+  email: String!
+  first_name: String
+  last_name: String
+  location: String
+  us_state: String
+}
+
+enum IntervalTimeRangeEnum {
+  DAILY
+  FIFTEEN_MINUTE
+  FIVE_MINUTE
+  HOURLY
+  MONTHLY
+  ONE_MINUTE
+  THIRTY_MINUTE
+  WEEKLY
+}
+
+type InvoiceDetails {
+  amount_msats: String
+  amount_sats: String
+  chain: BitcoinNetwork
+  created_at: String
+  description: String
+  expiry_date: String
+  expiry_time: Float
+  min_final_cltv_expiry: Float
+  payee_node: SimpleNode
+  payee_pubkey: String
+  payment_hash: String
+  routing_info: [InvoiceRoutingInfo!]
+  signature: String
+}
+
+type InvoiceHopHint {
+  base_fee_msat: String!
+  cltv_expiry_delta: Float!
+  fee_rate_ppm: String!
+  long_channel_id: String!
+  node: SimpleNode!
+  pubkey: String!
+  short_channel_id: String!
+}
+
+type InvoiceRoutingInfo {
+  hop_hints: [InvoiceHopHint!]!
+}
+
+enum IpAddressType {
+  DNS
+  I2P
+  IPV4
+  IPV6
+  TORV2
+  TORV3
+}
+
+type IpInfo {
+  city: String!
+  country: String!
+  country_code: String!
+  ip_address: String!
+  ip_type: IpAddressType!
+  isp: String
+  lat: String
+  long: String
+  org: String
+  port: Float
+  zip: String
+}
+
+type IpInfoByCities {
+  cities: [IpInfoByCity!]!
+  country: String
+  percent: String
+}
+
+type IpInfoByCity {
+  city: String
+  percent: String
+}
+
+type IpInfoByIpType {
+  ip_type: String
+  percent: String
+}
+
+type IpInfoStats {
+  countries: [IpInfoByCities!]
+  ip_types: [IpInfoByIpType!]
+}
+
+type KeysendType {
+  date: String!
+  id: String!
+  message: String!
+  sender: String
+  value: Float!
+}
+
+type LightningAddress {
+  account: String!
+  domain: String!
+  lightning_address: String!
+  pubkey: String!
+}
+
+type LightningAddressDetails {
+  callback: String!
+  domain: String!
+  user: String!
+}
+
+type LightningAddressInfo {
+  characters_allowed: Float
+  max_sendable: String!
+  min_sendable: String!
+}
+
+input LightningAddressInput {
+  address: String
+}
+
+type LightningAddressInvoice {
+  invoice: String!
+}
+
+type LightningLabs {
+  terminal_web: TerminalWebScore
+}
+
+type LightningRequest {
+  invoice: String
+  method: TransactionMethod!
+}
+
+type LightningResponse {
+  preimage: String!
+}
+
+type LinerCurve {
+  month: String!
+  series: [LnrSeries!]!
+}
+
+type LinerCurveBucket {
+  bucket_max: Float!
+  bucket_min: Float!
+  curves: [LinerCurve!]!
+}
+
+type LiquidityDemand {
+  amount: Float!
+  created_at: String!
+  payload: LiquidityDemandPayload!
+  tx_type: LiquidityTxType!
+}
+
+type LiquidityDemandData {
+  balance: Float!
+  history: [LiquidityDemand!]!
+  pending_balance: Float!
+  pubkey: String!
+  trigger_monitor_values: TriggerMonitorValues!
+}
+
+type LiquidityDemandPayload {
+  id: String
+  reason: ZeroOutReason
+  type: LiquidityDemandPayloadType!
+}
+
+enum LiquidityDemandPayloadType {
+  LIQUIDITY_TRIGGER
+  MAGMA_ORDER
+  ZERO_OUT
+}
+
+type LiquidityOneTimePlan {
+  date: String!
+  demand: Float!
+}
+
+type LiquidityPlan {
+  id: String!
+  is_deleted: Boolean!
+  is_enabled: Boolean!
+  metric: LiquidityTriggerMetrics!
+  one_time_plan: LiquidityOneTimePlan
+  pubkey: String!
+  recurring_plan: LiquidityRecurringPlan
+  value_check_plan: LiquidityValuePlan
+}
+
+type LiquidityRecurringPlan {
+  demand: Float!
+  frequency_minutes: Float!
+}
+
+enum LiquidityTriggerMetrics {
+  CAPACITY
+  EXTERNAL_INBOUND_LIQUIDITY
+  INBOUND_LIQUIDITY
+  ONE_TIME
+  RECURRING
+}
+
+enum LiquidityTxType {
+  CREDIT
+  DEBIT
+}
+
+type LiquidityValuePlan {
+  frequency_minutes: Float!
+  operator: TriggerOperator
+  trigger_value: Float!
+}
+
+type ListRankChange {
+  day: Float!
+  month: Float!
+  week: Float!
+}
+
+type ListsType {
+  network: NetworkLists!
+}
+
+type LnEdge {
+  block_age: Float!
+  capacity: String!
+  chan_point: String!
+  closed_info: ClosedEdge
+  is_closed: Boolean!
+  last_update: String!
+  node1_info: ChannelNodeInfo!
+  node1_policy: EdgePolicy
+  node1_pub: String!
+  node2_info: ChannelNodeInfo!
+  node2_policy: EdgePolicy
+  node2_pub: String!
+}
+
+type LnNodeInsightInfo {
+  scores(from: String): [LnNodeInsights!]!
+}
+
+type LnNodeInsights {
+  cent_between_rank: Float!
+  cent_between_weight_rank: Float!
+  cent_close_rank: Float!
+  cent_close_weight_rank: Float!
+  cent_eigen_rank: Float!
+  cent_eigen_weight_rank: Float!
+  last_updated: String!
+  pubkey: String!
+}
+
+type LnNodeInsightsInfo {
+  scores: LnNodeInsights
+}
+
+type LnPlusInfo {
+  rankings: LnPlusRankings!
+}
+
+type LnPlusRankings {
+  negative_ratings_given: Float
+  negative_ratings_received: Float
+  positive_ratings_given: Float
+  positive_ratings_received: Float
+  rank: Float
+  rank_name: String
+}
+
+type LnRouterInfo {
+  avg_onion_response_time: Float
+  balanced_percent: Float
+  routing_score_percentile: Float
+}
+
+enum LnrSearchPeriod {
+  ALL
+  ANNUALLY
+  DAILY
+  MONTHLY
+  WEEKLY
+}
+
+type LnrSeries {
+  duration: Float!
+  lnr: String!
+}
+
+type LnurlDetails {
+  allows_nostr: Boolean
+  callback: String!
+  comment_allowed: Float
+  max_sendable: String
+  max_sendable_sats: String
+  metadata: String!
+  min_sendable: String!
+  min_sendable_sats: String!
+  nostr_npub: String
+}
+
+type MagmaInfo {
+  id: String!
+  latest_liner: MarketLnrSeries
+  stats: MagmaStatsInfo!
+}
+
+type MagmaMessage {
+  created_at: String!
+  message: String!
+  pubkey: String!
+}
+
+type MagmaStatsInfo {
+  average_apr: String!
+  completed_fees: String!
+  completed_orders: Float!
+  completed_size: String!
+  latest_apr: String!
+}
+
+type MarketBuyReputation {
+  scores: [ReputationScore!]!
+}
+
+type MarketBuyStats {
+  confirmed_capacity: String!
+  confirmed_orders: Float!
+}
+
+type MarketInfo {
+  has_active_offers: Boolean!
+  seller_score: String!
+  seller_swap_score: String!
+  stats: MarketStats!
+  swap_stats: MarketStats!
+}
+
+type MarketLnrSeries {
+  date: String!
+  lnr: String!
+  lnr_cost: String!
+  lnr_yield: String!
+  lny: String!
+}
+
+type MarketMetrics {
+  lnr_curve: [LinerCurve!]!
+  lnr_curve_buckets: [LinerCurveBucket!]!
+  lnr_series(from: String!, period: LnrSearchPeriod!): [MarketLnrSeries!]!
+  order_details(from: String!): [MarketOrderDetails!]!
+  volume: MarketVolume!
+}
+
+enum MarketOfferType {
+  CHANNEL
+  SWAP
+}
+
+type MarketOrderDetails {
+  block_duration: Float!
+  date: String!
+  lnr: String!
+  lny: String
+  size: String!
+  status: OrderMonitoringStatus!
+}
+
+type MarketReputation {
+  buy: MarketBuyReputation!
+  pubkey: String!
+  sell: MarketSellReputation!
+  swap_sell: MarketSellReputation!
+}
+
+type MarketSellReputation {
+  score: String!
+  scores: [ReputationScore!]!
+}
+
+type MarketSellStats {
+  confirmed_capacity: String!
+  confirmed_orders: Float!
+}
+
+type MarketStats {
+  buy: MarketBuyStats!
+  sell: MarketSellStats!
+}
+
+type MarketVolume {
+  day_of_week(from: String!): VolByWeekDay!
+  historical(from: String!, period: VolumeSearchPeriod = DAILY): [HistoricalVolume!]!
+}
+
+type MempoolFeesType {
+  fastestFee: Float!
+  halfHourFee: Float!
+  hourFee: Float!
+  minimumFee: Float!
+}
+
+type Metrics {
+  count: Float!
+  max: String!
+  mean: String!
+  median: String!
+  min: String!
+  sum: String!
+}
+
+type MetricsAggregate {
+  base_fee_metrics: HistoricalMetrics!
+  channel_metrics: HistoricalMetrics!
+  fee_rate_metrics: HistoricalMetrics!
+  id: String!
+}
+
+type MonthCreditsUsage {
+  credits_used: String!
+  month: String!
+}
+
+type Mutation {
+  addAccountEmail(email: String!): Boolean!
+  addNewPubkeyToAccount(identifier: String!, signature: String!): Boolean!
+  addOrUpdateNotificationEvent(input: NotificationEventsInput!): Boolean!
+  addOutOfBandNode(authKey: String!, node: OutOfBandNodeInput!): Boolean!
+  addSocialsToNode(input: SocialInput!, pubkey: String): Boolean!
+  approveCommunityRequest(id: String!): Boolean!
+  cancelOrder(id: String!, reason: OrderCancellationReason!): Boolean!
+  cancelSubscription: Boolean!
+  cancelTransaction(id: String!): Boolean!
+  changeLightningAddress(input: LightningAddressInput): Boolean!
+  changePubkey(pubkey: String!): Boolean!
+  changeUserDefaultPaymentMethod(id: String!): Boolean!
+  claimGhostAddress(address: String): GhostAddress!
+  completeBusinessData(input: ExtraBusinessDataInput!): Boolean!
+  contactTeam(contactTeamInput: ContactTeamInput!): Boolean!
+  createAmbucksTransaction(bundle: AmbucksBundles!, method: TransactionMethod!, quoteId: String!): CreateSubscriptionTransaction!
+  createApiKey(details: String, pubkey: String, seconds: Float): String!
+  createCommunity(input: CreateCommunityInput!): Boolean!
+  createCommunityPost(input: CommunityPostInput!): Boolean!
+  createCommunityRequest(id: String!): String!
+  createCustomLogoUrl(logoUrl: String!): Boolean!
+  createCustomNostrUsername(username: String!): Boolean!
+  createCustomUrl(url: String!): Boolean!
+  createLiquidityPlan(input: CreateLiquidityPlanInput): LiquidityPlan!
+  createNewAccount(input: CreateAccountInput): Boolean!
+  createOffer(input: CreateOffer!): Boolean!
+  createOrder(input: CreateOrder!): Boolean!
+  createSnapshotOrder(ids: [String!]!): Boolean!
+  createSubscriptionTransaction(method: TransactionMethod!, months: Float!, tier: SubscriptionType!): CreateSubscriptionTransaction!
+  createTelegramLink: String!
+  deleteAccountEmail: Boolean!
+  deleteAccountWebhook: Boolean!
+  deleteApiKey(apikey: String!): Boolean!
+  deleteLiquidityTrigger(trigger_id: String!): Boolean!
+  disableNotificationEventById(input: DisableNotificationEventInput!): Boolean!
+  downloadBackup(id: String!): BackupDownload!
+  emailLogin(email: String!): Boolean!
+  enableChannelBalances(input: ChannelBalanceSettingsInput!): Boolean!
+  enableHealthChecks(input: CheckStatusIntervalInput!): Boolean!
+  enableNodeBalanceView(input: NodeBalanceSettingsInput!): Boolean!
+  healthCheck(signature: String!, timestamp: String!): Boolean!
+  leaveCommunity(id: String, ids: [String!]): Boolean!
+  login(details: String, identifier: String!, seconds: Float, signature: String!, token: Boolean): String!
+  logout: String!
+  migrateAccountPubkey(identifier: String!, signature: String!): Boolean!
+  pushExternalNodeData(input: ExternalNodeDataInput!): Boolean!
+  pushNodeBalances(input: ChannelBalancePushInput!): Boolean!
+  saveBackup(backup: String!, signature: String!): Boolean!
+  sellerAcceptOrder(id: String!, request: String!): Boolean!
+  sellerAddTransaction(id: String!, transaction: String!): Boolean!
+  sellerRejectOrder(id: String!): Boolean!
+  sendAnnouncement(announcement: String!): Boolean!
+  sendEmailVerification(email: String!): Boolean!
+  sendMagmaMessage(msg: String!, orderId: String!): Boolean!
+  setOrderCloseSide(closedBy: OrderChannelCloseSide!, orderId: String!): Boolean!
+  setPrivacyLevel(privacyLevel: PrivacyLevels!, pubkey: String!): Boolean!
+  toggleFavEdge(channel_id: String!): Boolean!
+  toggleFavNode(pubkey: String!): Boolean!
+  toggleLiquidityTrigger(trigger_id: String!): Boolean!
+  toggleOffer(id: String!): String!
+  tokenLogin(token: String!): Boolean!
+  unlinkTelegram: Boolean!
+  updateAccountInformation(input: CreateAccountInput!): Boolean!
+  updateAccountWebhook(url: String!): Boolean!
+  updateGhostConfig(config: GhostConfigInput!): GhostConfig!
+  updateLiquidityPlan(input: UpdatePlanInput): LiquidityPlan!
+  updateOffer(input: UpdateOffer!): Boolean!
+  verifyAddAccountEmail(token: String!): Boolean!
+  verifyEmail(token: String!): Boolean!
+  verifyToken(token: String!): VerfiyTokenResult!
+  vote(input: VoteInput!): Boolean!
+  zeroOutLiquidityDemand(pubkey: String): Boolean!
+}
+
+type NetworkLists {
+  channel_decrease(timeRange: TimeRangeEnum = ONE_WEEK): ChannelChange!
+  channel_increase(timeRange: TimeRangeEnum = ONE_WEEK): ChannelChange!
+}
+
+type NetworkMaxflowByDate {
+  date: String!
+  id: String!
+  payment_reliability_percent: String!
+}
+
+input NetworkMaxflowByValueInput {
+  sat_amount: Int
+  usd_amount: Int
+}
+
+type NetworkMaxflowByValueInputType {
+  sat_amount: Int
+  usd_amount: Int
+}
+
+type NetworkMaxflowReport {
+  created_at: String!
+  id: String!
+  maxflow_values: [NetworkMaxflowValue!]!
+}
+
+type NetworkMaxflowStats {
+  find_latest: NetworkMaxflowReport
+  id: String!
+}
+
+type NetworkMaxflowStatsByValue {
+  id: String!
+  input: NetworkMaxflowByValueInputType!
+  values: [NetworkMaxflowByDate!]!
+}
+
+type NetworkMaxflowValue {
+  id: String!
+  payment_reliability_percent: Float!
+  payment_size_sats: String!
+  payment_size_usd: String!
+}
+
+enum NetworkMetricsKeys {
+  active_channels
+  active_nodes
+  base_fee_metrics
+  channel_metrics
+  fee_rate_metrics
+}
+
+type NewChannelGosspipDelta {
+  mean: String!
+  sd: String!
+}
+
+type NodeAddress {
+  addr: String!
+  ip_info: IpInfo
+  network: String!
+}
+
+type NodeAlias {
+  alias: String!
+  pub_key: String!
+}
+
+input NodeBalanceSettingsInput {
+  node_balance_view_type: ChannelBalanceViewType!
+}
+
+type NodeChannelChange {
+  capacity_change: String!
+  channel_change: Float!
+  pubkey: String!
+}
+
+type NodeChannelInfo {
+  age: Metrics!
+  capacity: Metrics!
+}
+
+type NodeChannels {
+  num_channels: Float!
+  total_capacity: String!
+}
+
+type NodeCount {
+  active: Float!
+  id: String!
+  total: Float!
+}
+
+type NodeFeeInfo {
+  local: FeeMetrics!
+  remote: FeeMetrics!
+}
+
+type NodeHealthChecks {
+  current_health_status: HealthStatus
+  deltas: [HealthCheckDelta!]!
+  first_ping_time: String
+  last_ping_time: String
+  percent_uptime: HealthPercentUptime!
+}
+
+type NodeHistory {
+  node_info: NodeInfoHistory!
+}
+
+type NodeInfo {
+  channels: NodeChannels!
+  node: BaseNode
+}
+
+type NodeInfoChanges {
+  date: String!
+  prev_alias: String!
+  prev_color: String!
+  prev_sockets: [String!]!
+}
+
+type NodeInfoHistory {
+  changes: [NodeInfoChanges!]!
+}
+
+enum NodeMetricsKeys {
+  capacity
+  capacity_rank
+  channel_metrics
+  channels
+  channels_rank
+  incoming_base_fee_metrics
+  incoming_fee_rate_metrics
+  outgoing_base_fee_metrics
+  outgoing_fee_rate_metrics
+}
+
+type NodeNotifications {
+  has_enabled: Boolean!
+}
+
+type NodeSocials {
+  communities: [Community!]!
+  info: Social
+  lightning_labs: LightningLabs!
+  ln_plus: LnPlusInfo!
+  lnnodeinsights_info: LnNodeInsightsInfo!
+  lnrouter_info: LnRouterInfo!
+}
+
+type NodeType {
+  amboss: AmbossInfo!
+  graph_info: GraphInfo!
+  history: NodeHistory!
+  socials: NodeSocials!
+  user: UserNodeInfo
+}
+
+type NostrPubkeys {
+  hex: String!
+  npub: String!
+}
+
+input NotificationEventsInput {
+  balance: BalanceNotificationInput
+  eventType: EventType!
+  id: String
+  notificationType: NotificationType!
+  onchain: OnchainNotificationInput
+  peer_liquidity: PeerLiquidityNotificationInput
+  pubKeySubscribed: String
+}
+
+type NotificationMethodState {
+  is_available: Boolean!
+  is_enabled: Boolean!
+  notification_type: NotificationType!
+}
+
+type NotificationState {
+  balance: Balance
+  id: String
+  notification_state: [NotificationMethodState!]!
+  onchain: OnChain
+  peer_liquidity: PeerLiquidity
+  pubkey: String
+}
+
+enum NotificationType {
+  EMAIL
+  TELEGRAM
+  WEBHOOK
+}
+
+enum OfferCondition {
+  NODE_CAPACITY
+  NODE_CHANNELS
+  NODE_SOCKETS
+  PARALLEL_CHANNELS
+  TERMINAL_WEB_RANK
+}
+
+enum OfferConditionOperator {
+  CONTAINS
+  DOES_NOT_CONTAIN
+  EQUAL_TO
+  GREATER_THAN
+  GREATER_THAN_OR_EQUAL_TO
+  LESS_THAN
+  LESS_THAN_OR_EQUAL_TO
+  NOT_EQUAL_TO
+}
+
+type OfferConditionType {
+  condition: OfferCondition!
+  operators: [OfferConditionOperator!]!
+  options: [String!]!
+  value_type: ConditionValueType!
+}
+
+type OfferConditions {
+  condition: OfferCondition!
+  operator: OfferConditionOperator!
+  value: String!
+}
+
+input OfferConditionsInput {
+  condition: OfferCondition!
+  operator: OfferConditionOperator!
+  value: String!
+}
+
+type OfferList {
+  list: [OfferType!]!
+}
+
+type OfferOrders {
+  locked_size: String!
+}
+
+enum OfferSide {
+  BUY
+  SELL
+}
+
+enum OfferStatus {
+  ADMIN_DISABLED
+  DISABLED
+  ENABLED
+}
+
+type OfferTag {
+  name: String!
+}
+
+type OfferType {
+  account: String!
+  amboss_fee_rate: Float!
+  base_fee: Float!
+  base_fee_cap: Float
+  conditions: [OfferConditions!]
+  fee_rate: Float!
+  fee_rate_cap: Float
+  id: String!
+  max_size: String!
+  min_block_length: Float!
+  min_size: String!
+  offer_type: MarketOfferType!
+  onchain_multiplier: Float
+  onchain_priority: OnchainPriority
+  orders: OfferOrders!
+  seller_score: String!
+  side: OfferSide!
+  status: OfferStatus!
+  tags: [OfferTag!]!
+  total_size: String!
+}
+
+type OnChain {
+  condition: ConditionOperator!
+  frequencyMinutes: Float!
+  totalOnchain: Float!
+}
+
+input OnChainBalanceInput {
+  confirmed: String!
+  pending: String!
+}
+
+input OnchainNotificationInput {
+  condition: ConditionOperator!
+  frequencyMinutes: Float!
+  totalBalance: Float!
+}
+
+enum OnchainPriority {
+  HIGH
+  LOW
+  MEDIUM
+}
+
+type OpenChannelTransaction {
+  batch_amount: Float
+  fee: String
+  id: String!
+  vin_addresses: [String!]
+  vout: Float
+  vout_addresses: [String!]
+}
+
+type OptionLists {
+  business_types: [String!]!
+  countries: [String!]!
+  us_states: [String!]!
+}
+
+enum OrderCancellationReason {
+  CHANNEL_SIZE_OUT_OF_BOUNDS
+  UNABLE_TO_CONNECT_TO_NODE
+  UNABLE_TO_PAY
+}
+
+enum OrderChannelBy {
+  capacity
+  chan_id
+  channel_age
+  fee_base_msat
+  fee_rate_milli_msat
+  last_update
+  node1_pub
+  node2_alias
+  node2_pub
+  peer_fee_base_msat
+  peer_fee_rate_milli_msat
+}
+
+enum OrderChannelCloseSide {
+  ME
+  PEER
+}
+
+input OrderChannelInput {
+  by: OrderChannelBy!
+  direction: OrderDirection!
+}
+
+enum OrderDirection {
+  ASC
+  DESC
+}
+
+type OrderEndpoints {
+  destination: String!
+  source: String!
+}
+
+type OrderList {
+  list: [OrderType!]!
+}
+
+enum OrderMonitoringStatus {
+  ACTIVE
+  FINISHED
+  FINISHED_EARLY
+  NOT_MONITORED
+}
+
+enum OrderPaymentMethod {
+  AMBUCKS
+  SATS
+}
+
+enum OrderPaymentStatus {
+  HODL_INVOICE_TIMEOUT
+  INVALID_PAYMENT_SECRET
+  PAYMENT_FAILED
+  PAYMENT_REJECTED_BY_DESTINATION
+  PENDING_PAYMENT
+  SELLER_INVOICE_EXPIRED
+  SUCCESSFUL_PAYMENT
+}
+
+type OrderSides {
+  maker: String! @deprecated(reason: "The maker_name field is now available")
+  maker_metrics: MarketStats!
+  maker_name: String!
+  taker: String! @deprecated(reason: "The taker_name field is now available")
+  taker_metrics: MarketStats!
+  taker_name: String!
+}
+
+enum OrderStatus {
+  ADMIN_CLOSED
+  BUYER_FAILED_TO_PAY
+  BUYER_REJECTED
+  CHANNEL_MONITORING_FINISHED
+  INVALID_CHANNEL_OPENING
+  ON_CHAIN_CONFIRMATION
+  SELLER_FAILED_TO_OPEN_CHANNEL
+  SELLER_FAILED_TO_REACT
+  SELLER_FAILED_TO_SEND_SWAP
+  SELLER_OPENED_CHANNEL
+  SELLER_REJECTED
+  SELLER_SENT_TRANSACTION
+  VALID_CHANNEL_OPENING
+  WAITING_FOR_BUYER_PAYMENT
+  WAITING_FOR_CHANNEL_OPEN
+  WAITING_FOR_ON_CHAIN_CONFIRMATION
+  WAITING_FOR_SELLER_APPROVAL
+}
+
+type OrderType {
+  account: String!
+  amboss_fee_rate: String!
+  blocks_until_can_be_closed: Float
+  buyer_close_side: OrderChannelCloseSide
+  buyer_invoice_amount: String
+  buyer_scores: [ReputationScore!]!
+  cancellation_reason: OrderCancellationReason
+  channel_id: String
+  chat_enabled: Boolean!
+  closed_blocks_before_min: Float
+  created_at: String!
+  endpoints: OrderEndpoints!
+  fee_above_cap_seconds: String
+  fixed_fee: String!
+  id: String!
+  is_automated: Boolean!
+  locked_base_fee: Float!
+  locked_base_fee_cap: Float
+  locked_fee_rate: Float!
+  locked_fee_rate_cap: Float
+  locked_min_block_length: Float!
+  messages: [MagmaMessage!]
+  offer: String!
+  offer_account: String!
+  offer_side: OfferSide!
+  offer_type: MarketOfferType! @deprecated(reason: "Onchain swaps are no longer available")
+  on_chain_address: String @deprecated(reason: "Onchain swaps are no longer available")
+  on_chain_address_type: AddressType @deprecated(reason: "Onchain swaps are no longer available")
+  payment_hash: String
+  payment_status: OrderPaymentStatus
+  request: String
+  seller_close_side: OrderChannelCloseSide
+  seller_invoice_amount: String
+  sides: OrderSides!
+  size: String!
+  status: OrderStatus!
+  timeout: String
+  transaction_id: String
+  updated_at: String!
+  variable_fee: String!
+}
+
+input OutOfBandNodeInput {
+  alias: String
+  color: String!
+  pubkey: String!
+  sockets: [String!]!
+}
+
+input PageInput {
+  limit: Float!
+  offset: Float!
+}
+
+type Pagination {
+  limit: Float!
+  offset: Float!
+}
+
+input PaymentDetailsInput {
+  payment_info: String!
+}
+
+type PaymentMethod {
+  method: TransactionMethod!
+}
+
+type PeerLiquidity {
+  balanceLimit: ConditionOperator!
+  frequencyMinutes: Float!
+  percentage: Float!
+}
+
+input PeerLiquidityNotificationInput {
+  balanceLimit: ConditionOperator!
+  frequencyMinutes: Float!
+  percentage: Float!
+}
+
+type PolicyHistory {
+  node1: EdgeHistoryInfo!
+  node2: EdgeHistoryInfo!
+}
+
+type PostList {
+  list: [CommunityPost!]!
+  pagination: Pagination!
+}
+
+enum PrivacyLevels {
+  AMBOSS_USERS
+  COMMUNITY_ONLY
+  PEERS_ONLY
+  PEERS_OR_COMMUNITY
+  PUBLIC
+}
+
+type Query {
+  checkTransaction(id: String!): TransactionCheck
+  decodePaymentDetails(input: PaymentDetailsInput!): DecodingDetails!
+  getAccountCountryList: [String!]! @deprecated(reason: "Please use getOptionLists")
+  getAddressUTXOs(address: String!): [Utxo!]!
+  getAllCommunities: [CommunityType!]!
+  getAllCommunityMembers(community: String!): [CommunityMember!]!
+  getAllCommunityRequests(id: String!): [CommunityRequestsResponse!]!
+  getAllVotesForPubkey(pubkey: String!): Votes!
+  getAmbossStats: AmbossStats!
+  getAmbucksBundleInfo: AmbucksBundlesBatch!
+  getApiKeys: [ApiKey!]!
+  getBitcoinTxInfo(txId: String!): BitcoinTxInfo!
+  getClaimedDates: [String!]
+  getCommunity(id: String!): CommunityType!
+  getCommunityPosts(communityId: String!, communityPostId: String, page: PageInput = {limit: 10, offset: 0}): PostList!
+  getCommunityRequest(id: String!): CommunityRequestResponse!
+  getCurrentVotes(pubkey: String!): CurrentVotes!
+  getEdge(id: String!): EdgeInfo!
+  getEdgeChanges(days: Float = 7, pubkey: String): EdgeChangeResume!
+  getEdgeInfoBatch(ids: [String!]!): [EdgeInfoBatch!]!
+  getFavorites: Favorites!
+  getGhostPayment(input: GhostPaymentInput!): GhostPayment!
+  getHello: String!
+  getLastBackups: [BackupItem!]!
+  getLatestClaimedNodes: [EnrichedSocial!]!
+  getLightningAddressInfo(pubkey: String!): LightningAddressInfo
+  getLightningAddressInvoice(amount: Float!, comment: String, pubkey: String!): LightningAddressInvoice!
+  getLightningAddresses: [LightningAddress!]!
+  getLiquidityPlan(plan_id: String!): LiquidityPlan!
+  getLists: ListsType!
+  getLoginToken(seconds: Float): String!
+  getMarketMetrics: MarketMetrics!
+  getMempoolFees: MempoolFeesType
+  getMessages(id: String): [KeysendType!]!
+  getNetworkMetrics: GeneralNetworkMetrics!
+  getNewPaymentMethodIntent: StripeSetupIntent!
+  getNode(pubkey: String!): NodeType!
+  getNodeAlias(pubkey: String!): String
+  getNodeAliasBatch(pubkeys: [String!]!): [NodeAlias!]!
+  getNodeChannelCapacities(pubkey: String!): [ChannelCapacity!]!
+  getNodeMetrics(pubkey: String!): HistoricalNodeMetrics!
+  getNostrPubkeyForUsername(username: String!): NostrPubkeys!
+  getOffer(id: String!): OfferType!
+  getOfferConditions: [OfferConditionType!]!
+  getOfferOrders(id: String): OrderList! @deprecated(reason: "Please use getUser")
+  getOfferRecommendations(channelSize: Float!, offerType: MarketOfferType = CHANNEL): OfferList!
+  getOffers(offerType: MarketOfferType = CHANNEL, pubkey: String, targetPubkey: String): OfferList!
+  getOptionLists: OptionLists!
+  getOrder(id: String!): OrderType!
+  getPopularNodes: [String!]!
+  getPubForCustomUrl(url: String!): String!
+  getPubkeyEdgeChanges(pubkey: String!): [EdgeChange!]!
+  getRankLists: RankLists!
+  getSharedChannels(page: PageInput = {limit: 10, offset: 0}, pubkey1: String!, pubkey2: String!): SharedChannelsInfo!
+  getSignInfo: SignInfo!
+  getSnapshots(from: String, to: String): [Snapshots!]!
+  getSubscriptionPlans: [SubscriptionPlanType!]!
+  getTickers: [Ticker!]!
+  getTransactionFee(transaction: String!): Float
+  getUser: UserInfo!
+  getUserNodeBalances: UserNodeReportedBalances!
+  getUserNotificationEvents(pubkey: String): [EventTypeNotifications!]!
+  getUserOffers: OfferList! @deprecated(reason: "Please use getUser")
+  getVoteLists: VoteLists!
+  search(filter: String, query: String!, sort: String): SearchResults!
+  searchAutocomplete(query: String!): SearchAutoComplete!
+  verifySignature(message: String!, signature: String!): VerifySignature!
+}
+
+type RankChange {
+  day: Float
+}
+
+type RankItem {
+  pubkey: String!
+  rank: Float!
+  rank_change: ListRankChange!
+}
+
+type RankLists {
+  capacity: [RankItem!]!
+  channels: [RankItem!]!
+}
+
+type ReportedBalancePercent {
+  balance_percent: String
+  balance_percent_range: BalanceRange
+}
+
+type ReportedChannel {
+  balance: String
+  balance_range: BalanceRange
+  created_at: String!
+}
+
+type ReportedChannelBalance {
+  balance: String!
+  capacity: String!
+  chan_id: String!
+  created_at: String!
+  id: String!
+}
+
+type ReportedChannelBalanceSummary {
+  capacity: String
+  close_balance: String
+  id: String!
+  max_balance: String
+  min_balance: String
+  open_balance: String
+  total_inflow: String
+  total_outflow: String
+}
+
+type ReportedNodeBalanceSummary {
+  channel_amount: String
+  confirmed_onchain: String
+  created_at: String!
+  id: String!
+  local_amount_confirmed: String
+  local_amount_pending: String
+  pending_onchain: String
+  total_amount_confirmed: String
+  total_amount_pending: String
+}
+
+type ReputationScore {
+  metric: String!
+  score: String!
+  value: String!
+}
+
+type SearchAutoComplete {
+  id: String!
+  num_results: Float!
+  results: [SearchSuggestion!]!
+}
+
+type SearchEdge {
+  chan_id: String!
+  id: String!
+}
+
+type SearchEdgeResults {
+  num_results: Float!
+  pagination: Pagination!
+  results: [SearchEdge!]!
+}
+
+type SearchNode {
+  alias: String!
+  capacity: String!
+  channel_amount: String!
+  id: String!
+  pubkey: String!
+}
+
+type SearchNodeResults {
+  num_results: Float!
+  pagination: Pagination!
+  results: [SearchNode!]!
+}
+
+type SearchResults {
+  edge_results(page: PageInput = {limit: 25, offset: 0}): SearchEdgeResults!
+  node_results(page: PageInput = {limit: 25, offset: 0}): SearchNodeResults!
+}
+
+type SearchSuggestion {
+  id: String!
+  value: String!
+}
+
+type Settings {
+  email: String
+  email_account: String
+  telegram_id: String
+  webhook_secret: String
+  webhook_url: String
+}
+
+type SharedChannelsInfo {
+  list: [Channel!]!
+  pagination: Pagination!
+  total_count: Float!
+}
+
+type SignInfo {
+  expiry: String!
+  identifier: String!
+  message: String!
+}
+
+type SimpleNode {
+  alias: String
+  id: String!
+  pubkey: String!
+}
+
+type SimulationStats {
+  id: String!
+  network_maxflow: NetworkMaxflowStats!
+  network_maxflow_by_value(input: NetworkMaxflowByValueInput!): NetworkMaxflowStatsByValue!
+}
+
+enum SnapshotTimeRangeEnum {
+  ONE_DAY
+  ONE_MONTH
+  ONE_WEEK
+  TODAY
+}
+
+type Snapshots {
+  date: String!
+  id: String!
+  price: Float!
+  size: String!
+}
+
+type Social {
+  custom_url: String
+  email: String
+  lightning_address: String
+  linkedin: String
+  logo: String
+  message: String
+  minChannelSize: Float
+  nostr: String
+  nostr_username: String
+  privacy_level: PrivacyLevels
+  private: Boolean @deprecated(reason: "Please use the privacy_level field")
+  pubkey: String!
+  telegram: String
+  twitter: String
+  twitter_verified: Boolean
+  updated: String!
+  website: String
+}
+
+input SocialInput {
+  email: String
+  linkedin: String
+  message: String
+  minChannelSize: Float
+  nostr: String
+  telegram: String
+  twitter: String
+  website: String
+}
+
+type StripeCardMethod {
+  brand: String!
+  country: String!
+  exp_month: Float!
+  exp_year: Float!
+  fingerprint: String!
+  last4: String!
+}
+
+type StripeInfo {
+  default_payment_method: StripePaymentMethod
+  payment_methods: [StripePaymentMethod!]!
+}
+
+type StripePaymentIntent {
+  client_secret: String!
+  status: String!
+}
+
+type StripePaymentMethod {
+  card: StripeCardMethod
+  created_at: String!
+  id: String!
+  type: String!
+}
+
+type StripeRequest {
+  method: TransactionMethod!
+  payment_intent: StripePaymentIntent
+}
+
+type StripeResponse {
+  invoice_pdf: String
+  payment_method: StripePaymentMethod
+}
+
+type StripeSetupIntent {
+  client_secret: String!
+}
+
+enum SubscriptionChangeType {
+  ACTIVATE
+  EXTEND
+  GIFT
+  REACTIVATE
+  UPGRADE
+}
+
+type SubscriptionPayload {
+  reason: TransactionReason!
+}
+
+type SubscriptionPlan {
+  available_payment_methods: [PaymentMethod!]!
+  cta_text: String!
+  disabled: Boolean!
+  months: Float!
+  price_usd: Float!
+}
+
+type SubscriptionPlanType {
+  disabled: Boolean!
+  plans: [SubscriptionPlan!]!
+  type: SubscriptionType!
+  upgradable: Boolean!
+}
+
+enum SubscriptionType {
+  TIER_10
+  TIER_20
+  TIER_30
+  TIER_80
+}
+
+type TerminalInfo {
+  scores(from: String): [TerminalScore!]!
+}
+
+type TerminalScore {
+  centrality: String!
+  centrality_normalized: String!
+  good_inbound_peers: Float!
+  good_outbound_peers: Float!
+  last_updated: String!
+  position: Float!
+  pubkey: String!
+  score: String!
+  stable_inbound_peers: Float!
+  stable_outbound_peers: Float!
+  total_peers: Float!
+}
+
+type TerminalWebScore {
+  centrality: Float!
+  centrality_normalized: Float!
+  good_inbound_peers: Float!
+  good_outbound_peers: Float!
+  position: Float!
+  score: Float!
+  stable_inbound_peers: Float!
+  stable_outbound_peers: Float!
+  total_peers: Float!
+}
+
+type Ticker {
+  currency: String!
+  price: String!
+}
+
+enum TimeRangeEnum {
+  ONE_DAY
+  ONE_MONTH
+  ONE_WEEK
+}
+
+type Transaction {
+  amount: String!
+  created_at: String!
+  currency: TransactionCurrency!
+  description: String!
+  id: String!
+  payload: TransactionPayload!
+  request: TransactionRequest!
+  response: TransactionResponse
+  status: UserTransactionStatus!
+}
+
+type TransactionCheck {
+  status: UserTransactionStatus!
+}
+
+enum TransactionCurrency {
+  BITCOIN_SAT
+  FIAT_USD_CENT
+}
+
+type TransactionInfo {
+  list: [Transaction!]!
+  transaction(id: String!): Transaction!
+}
+
+enum TransactionMethod {
+  LIGHTNING_INVOICE
+  STRIPE
+}
+
+union TransactionPayload = AmbucksPayload | SubscriptionPayload
+
+enum TransactionReason {
+  AMBUCKS
+  SUBSCRIPTION
+}
+
+union TransactionRequest = LightningRequest | StripeRequest
+
+union TransactionResponse = LightningResponse | StripeResponse
+
+type TriggerMonitorValues {
+  capacity: Float
+  external_inbound_liquidity: Float
+  inbound_liquidity: Float
+}
+
+enum TriggerOperator {
+  GREATER_THAN
+  LESS_THAN
+}
+
+type UTXOStatus {
+  block_height: Float
+  block_time: String
+  confirmed: Boolean!
+}
+
+input UpdateOffer {
+  base_fee: Float
+  base_fee_cap: Float
+  conditions: [OfferConditionsInput!]
+  fee_rate: Float
+  fee_rate_cap: Float
+  max_size: Float
+  min_block_length: Float
+  min_size: Float
+  offer: String!
+  onchain_multiplier: Float
+  onchain_priority: OnchainPriority
+  total_size: Float!
+}
+
+input UpdateOneTimePlanInput {
+  date: String!
+  demand: Float!
+  trigger_id: String!
+}
+
+input UpdatePlanInput {
+  one_time_plan: UpdateOneTimePlanInput
+  recurring_plan: UpdateRecurringPlanInput
+  value_check_plan: UpdateValuePlanInput
+}
+
+input UpdateRecurringPlanInput {
+  demand: Float
+  frequency_minutes: Float
+  trigger_id: String!
+}
+
+input UpdateValuePlanInput {
+  frequency_minutes: Float
+  trigger_id: String!
+  trigger_value: Float
+}
+
+type UserAmbucks {
+  balances: [AmbucksBalances!]!
+  transactions: [AmbucksTx!]!
+}
+
+type UserBackupInfo {
+  available_size: String! @deprecated(reason: "use new slots fields")
+  last_update: String
+  last_update_size: String
+  remaining_size: String! @deprecated(reason: "use new slots fields")
+  slots: Float!
+  total_size_saved: String!
+}
+
+type UserFlags {
+  show_node_checks: Boolean!
+}
+
+type UserGhost {
+  username: String
+}
+
+type UserInfo {
+  admin: Boolean!
+  ambucks: UserAmbucks
+  api_key: String!
+  backups: UserBackupInfo
+  communities: [Community!]!
+  credits_usage: CreditsUsage!
+  flags: UserFlags!
+  ghost: UserGhost!
+  id: String!
+  liquidity_automation: UserLiquidityAutomation
+  market: UserMarketInfo
+  monitoring: UserMonitoring
+  owner: Boolean!
+  pubkey: String
+  pubkeys: [String!]!
+  settings: Settings!
+  stripe: StripeInfo
+  subscription: UserSubscription!
+  telegram_connected: Boolean!
+  transactions: TransactionInfo!
+  user_alias: String!
+  user_id: String!
+  verification: VerificationData!
+}
+
+type UserLiquidityAutomation {
+  demand: [LiquidityDemandData!]
+  liquidity_plans: [LiquidityPlan!]!
+}
+
+type UserMarketInfo {
+  enabled: Boolean!
+  has_active_offers: Boolean!
+  offer_orders(id: String): OrderList!
+  offers: OfferList!
+  orders(status: OrderStatus): OrderList!
+  pending_buyer_orders: Float!
+  pending_seller_orders: Float!
+  pubkey_reputations: [MarketReputation!]!
+  reputation: MarketReputation! @deprecated(reason: "Please use pubkey_reputations")
+}
+
+type UserMonitoring {
+  active_monitored_pubkeys: [String!]!
+  channel_balances: ChannelBalanceSettingsInfo
+  healthcheck: HealthCheckInfo
+}
+
+type UserNodeInfo {
+  is_peer: Boolean!
+  notifications: NodeNotifications!
+}
+
+type UserNodeReportedBalances {
+  channel_balances_aggregation(fromDays: Float = 1, toDays: Float = 0): [ReportedChannelBalanceSummary!]! @deprecated(reason: "Please use historical_channel_balances")
+  historical_channel_balances(chan_ids: [String!]!, from: String!, interval: IntervalTimeRangeEnum = HOURLY, to: String = null): [HistoricalChannelBalances!]!
+  historical_node_balance_changes(from: String!, interval: IntervalTimeRangeEnum = HOURLY, to: String = null): [HistoricalNodeBalanceChange!]!
+  historical_node_balances(from: String!, interval: IntervalTimeRangeEnum = HOURLY, pubkey: String, to: String = null): [HistoricalNodeBalance!]!
+  latest_balances: ReportedNodeBalanceSummary
+  latest_channels: [ReportedChannelBalance!]!
+  reported_channel_ids: [String!]!
+}
+
+type UserSubscription {
+  cancellable: Boolean!
+  changes: [UserSubscriptionChanges!]!
+  end_date: String!
+  extendable: Boolean!
+  start_date: String!
+  subscribed: Boolean!
+  type: SubscriptionType
+  upgradable: Boolean! @deprecated(reason: "Please use the extendable field")
+}
+
+type UserSubscriptionChanges {
+  timestamp: String!
+  type: SubscriptionChangeType!
+}
+
+enum UserTransactionStatus {
+  CANCELLED
+  CONFIRMED
+  FAILED
+  PENDING
+}
+
+type Utxo {
+  blocks_to_confirmation: Float
+  status: UTXOStatus!
+  txid: String!
+  value: String!
+  vout: Float!
+}
+
+type VerfiyTokenResult {
+  type: EmailType!
+}
+
+type VerificationData {
+  account_info: AccountInfo
+  has_account_info: Boolean!
+  id: String!
+  is_business: Boolean!
+  is_individual: Boolean!
+  session_url: String
+  status: VerificationStatus!
+}
+
+enum VerificationStatus {
+  COMPLETED
+  IN_PROGRESS
+  NOT_COMPLETED
+}
+
+type VerifySignature {
+  has_active_edge: Boolean!
+  has_visible_node: Boolean!
+  pubkey: String
+  valid_signature: Boolean!
+}
+
+type VolByWeekDay {
+  friday: String!
+  monday: String!
+  saturday: String!
+  sunday: String!
+  thursday: String!
+  tuesday: String!
+  wednesday: String!
+}
+
+enum VolumeSearchPeriod {
+  ANNUALLY
+  DAILY
+  MONTHLY
+  WEEKLY
+}
+
+enum VoteCategoryType {
+  NODE_TYPE
+}
+
+enum VoteChoiceType {
+  ROUTER
+  SINK
+  SOURCE
+  UNKNOWN
+}
+
+input VoteInput {
+  category: VoteCategoryType!
+  choice: VoteChoiceType!
+  pubkey: String!
+}
+
+type VoteListItem {
+  pubkey: String!
+}
+
+type VoteLists {
+  router: [VoteListItem!]!
+  sink: [VoteListItem!]!
+  source: [VoteListItem!]!
+  unknown: [VoteListItem!]!
+}
+
+type Votes {
+  router: Float!
+  sink: Float!
+  source: Float!
+  total: Float!
+  unknown: Float!
+}
+
+type Vout {
+  index: Float!
+  value: String!
+}
+
+enum ZeroOutReason {
+  INSUFFICIENT_AMBUCKS
+  NO_NOTIFICATIONS
+  USER_REQUESTED
+}

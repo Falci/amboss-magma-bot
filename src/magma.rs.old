@@ -1,0 +1,41 @@
+use graphql_client::{GraphQLQuery, Response};
+use std::error::Error;
+use reqwest;
+
+// The paths are relative to the directory where your `Cargo.toml` is located.
+// Both json and the GraphQL schema language are supported as sources for the schema
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "resources/schema.graphql",
+    query_path = "resources/MyOfferOrders.graphql",
+    response_derives = "Debug"
+)]
+pub struct MyOfferOrders;
+
+
+pub async fn perform_my_query() -> Result<my_offer_orders::ResponseData, Box<dyn Error>> {
+    let api_token =
+        std::env::var("MAGMA_API_TOKEN").expect("Missing MAGMA_API_TOKEN env var");
+
+    // this is the important line
+    let request_body = MyOfferOrders::build_query(my_offer_orders::Variables {
+    });
+
+    let client = reqwest::Client::builder()
+        .user_agent("graphql-rust/0.10.0")
+        .default_headers(
+            std::iter::once((
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", api_token))
+                    .unwrap(),
+            ))
+            .collect(),
+        )
+        .build()?;
+
+
+    let res = client.post("/graphql").json(&request_body).send().await?;
+    let response_body: Response<my_offer_orders::ResponseData> = res.json().await?;
+    Ok(response_body.data.unwrap())
+}
+

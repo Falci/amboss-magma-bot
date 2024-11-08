@@ -1,0 +1,3 @@
+mutation Login($identifier: String!, $signature: String!, $token: Boolean) {
+  login(identifier: $identifier, signature: $signature, token: $token)
+}

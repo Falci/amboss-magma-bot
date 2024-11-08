@@ -1,0 +1,7 @@
+query GetSignInfo {
+  getSignInfo {
+    expiry
+    identifier
+    message
+  }
+}

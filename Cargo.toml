@@ -1,0 +1,11 @@
+[package]
+name = "magma"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+graphql_client = "0.14"
+dotenvy = "0.15"
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
