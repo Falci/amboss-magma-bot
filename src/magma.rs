@@ -8,24 +8,24 @@ use crate::node::LNNode;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "resources/schema.graphql",
-    query_path = "resources/MyOfferOrders.graphql",
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/MyOfferOrders.graphql",
     response_derives = "Debug, Deserialize"
 )]
 struct MyOfferOrders;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "resources/schema.graphql",
-    query_path = "resources/GetSignInfo.graphql",
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/GetSignInfo.graphql",
     response_derives = "Debug, Deserialize"
 )]
 struct GetSignInfo;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "resources/schema.graphql",
-    query_path = "resources/Login.graphql",
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/Login.graphql",
     response_derives = "Debug, Deserialize"
 )]
 struct Login;
@@ -49,12 +49,14 @@ impl Api {
         Api::new(api_key)
     }
 
-    pub fn from_node(node: LNNode) -> Api {
+    pub async fn from_node(node: LNNode) -> Api {
         let api = Api::new("".to_string());
         
         let info = api.get_sign_info().unwrap().get_sign_info;
-        let signature = node.sign(info.message).unwrap();
+        let signature = node.sign(info.message).await.unwrap();
         let api_key = api.login(info.identifier, signature).unwrap().login;
+
+        println!("API key: {}", api_key);
 
         Api::new(api_key)
     }
