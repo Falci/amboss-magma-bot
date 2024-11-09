@@ -1,0 +1,15 @@
+query Orders {
+  getUser {
+    market {
+      offer_orders {
+        list {
+          id
+          size
+          status
+          account
+          seller_invoice_amount
+        }
+      }
+    }
+  }
+}

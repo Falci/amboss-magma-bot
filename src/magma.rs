@@ -1,18 +1,15 @@
-use dotenvy::dotenv;
 use graphql_client::{GraphQLQuery, Response};
-use reqwest::blocking::Client;
+use orders::{OrdersGetUserMarket, OrdersGetUserMarketOfferOrdersList};
+use reqwest::Client;
 use serde::Serialize;
-use std::env;
-
-use crate::node::LNNode;
 
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "resources/graphql/schema.graphql",
-    query_path = "resources/graphql/MyOfferOrders.graphql",
+    query_path = "resources/graphql/Orders.graphql",
     response_derives = "Debug, Deserialize"
 )]
-struct MyOfferOrders;
+struct Orders;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -41,44 +38,43 @@ impl Api {
         Api { api_key }
     }
 
-    pub fn from_env() -> Api {
-        dotenv().ok(); // Load environment variables from .env
-
-        let api_key = env::var("MAGMA_API_KEY").expect("MAGMA_API_KEY not found in .env");
-
-        Api::new(api_key)
-    }
-
-    pub async fn from_node(node: LNNode) -> Api {
+    pub async fn from_signer<F, S>(signer: F) -> Result<Api, Box<dyn std::error::Error>>
+    where
+        F: Fn(String) -> S,
+        S: std::future::Future<Output = Result<String, Box<dyn std::error::Error>>>,
+    {
         let api = Api::new("".to_string());
-        
-        let info = api.get_sign_info().unwrap().get_sign_info;
-        let signature = node.sign(info.message).await.unwrap();
-        let api_key = api.login(info.identifier, signature).unwrap().login;
 
-        println!("API key: {}", api_key);
+        let info = api.get_sign_info().await?.get_sign_info;
+        let signature = signer(info.message).await?;
+        let api_key = api.login(info.identifier, signature).await?.login;
 
-        Api::new(api_key)
+        println!("MAGMA API key acquired");
+
+        Ok(Api::new(api_key))
     }
 
-    fn request<Var, Res>(&self, request_body: graphql_client::QueryBody<Var>) -> Result<Res, Box<dyn std::error::Error>> 
+    async fn request<Var, Res>(
+        &self,
+        request_body: graphql_client::QueryBody<Var>,
+    ) -> Result<Res, Box<dyn std::error::Error>>
     where
         Var: Serialize,
         Res: serde::de::DeserializeOwned,
     {
-        let client = Client::new();
-
-        // Send the request
-        let res = client
+        // Send the request asynchronously
+        let res = Client::new()
             .post(Api::API_URL)
             .header("Authorization", format!("Bearer {}", &self.api_key))
             .json(&request_body)
-            .send()?
-            .json::<Response<Res>>()?;
+            .send()
+            .await?
+            .json::<Response<Res>>()
+            .await?;
 
         // Process the response
         if let Some(data) = res.data {
-            // TOOD: handle throttleStatus
+            // TODO: handle throttleStatus
             Ok(data)
         } else if let Some(errors) = res.errors {
             Err(format!("GraphQL errors: {:?}", errors).into())
@@ -87,22 +83,40 @@ impl Api {
         }
     }
 
-    pub fn get_offer_orders(&self) -> Result<my_offer_orders::ResponseData, Box<dyn std::error::Error>> {
-        let request_body = MyOfferOrders::build_query(my_offer_orders::Variables {});
-        self.request::<my_offer_orders::Variables, my_offer_orders::ResponseData>(request_body) 
+    pub async fn get_orders(
+        &self,
+    ) -> Result<Vec<OrdersGetUserMarketOfferOrdersList>, Box<dyn std::error::Error>> {
+        let request_body = Orders::build_query(orders::Variables {});
+
+        let orders = self
+            .request::<orders::Variables, orders::ResponseData>(request_body)
+            .await?
+            .get_user
+            .market
+            .map_or_else(|| Vec::new(), |market| market.offer_orders.list);
+
+        Ok(orders)
     }
 
-    fn get_sign_info(&self) -> Result<get_sign_info::ResponseData, Box<dyn std::error::Error>> {
+    async fn get_sign_info(
+        &self,
+    ) -> Result<get_sign_info::ResponseData, Box<dyn std::error::Error>> {
         let request_body = GetSignInfo::build_query(get_sign_info::Variables {});
-        self.request::<get_sign_info::Variables, get_sign_info::ResponseData>(request_body) 
+        self.request::<get_sign_info::Variables, get_sign_info::ResponseData>(request_body)
+            .await
     }
 
-    fn login(&self, identifier: String, signature: String) -> Result<login::ResponseData, Box<dyn std::error::Error>> {
+    async fn login(
+        &self,
+        identifier: String,
+        signature: String,
+    ) -> Result<login::ResponseData, Box<dyn std::error::Error>> {
         let request_body = Login::build_query(login::Variables {
             identifier,
             signature,
             token: Some(true),
         });
-        self.request::<login::Variables, login::ResponseData>(request_body) 
+        self.request::<login::Variables, login::ResponseData>(request_body)
+            .await
     }
 }

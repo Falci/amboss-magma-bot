@@ -1,91 +1,150 @@
-use reqwest::Client;
-
 use dotenvy::dotenv;
-use serde::Serialize;
+use lnd_grpc_rust::{lnrpc::MacaroonPermission, LndClient};
 use std::env;
+
+fn hex(bytes: Vec<u8>) -> String {
+    bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
+}
+
+fn get_host() -> String {
+    env::var("LND_HOST").unwrap_or("localhost:10009".to_string())
+}
+
+fn get_macaroon() -> String {
+    env::var("LND_MACAROON").unwrap_or_else(|_| {
+        let path = env::var("LND_MACAROON_PATH")
+            .unwrap_or_else(|_| "~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon".to_string());
+
+        let value =
+            std::fs::read(&path).expect(format!("Cannot load macaroon file {}", path).as_str());
+
+        hex(value)
+    })
+}
+
+fn get_tls_cert() -> String {
+    env::var("LND_TLS_CERT").unwrap_or_else(|_| {
+        let path = env::var("LND_TLS_CERT_PATH").unwrap_or_else(|_| "~/.lnd/tls.cert".to_string());
+
+        std::fs::read_to_string(&path)
+            .expect(format!("Cannot load TLS certificate file {}", path).as_str())
+    })
+}
 
 #[derive(Debug)]
 pub struct LNNode {
     host: String,
     macaroon: String,
+    tls_cert: String,
 }
 
 impl LNNode {
-
     pub async fn from_env() -> Result<LNNode, Box<dyn std::error::Error>> {
         dotenv().ok(); // Load environment variables from .env
-        
-        let host = env::var("LND_HOST").unwrap_or("localhost:8080".to_string());
 
-        let macaroon = LNNode::get_from_env_or_path(
-            "LND_MACAROON".to_string(), 
-            "~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon".to_string()
-        );
+        let host = get_host();
+        let macaroon = get_macaroon();
+        let tls_cert = get_tls_cert();
 
-        let node = LNNode { host, macaroon };
+        let node = LNNode {
+            host,
+            macaroon,
+            tls_cert,
+        };
 
-        node.check_connection().await?;
-        
+        node.check_permissions().await?;
+
         Ok(node)
     }
 
-    async fn get(&self, path: String) -> Result<reqwest::Response, reqwest::Error> {
-        let client = Client::builder()
-            .danger_accept_invalid_certs(true) 
-            .build()?;
+    async fn client(&self) -> LndClient {
+        let tls_cert = self.tls_cert.clone();
+        let macaroon = self.macaroon.clone();
+        let host = self.host.clone();
 
-        let url = format!("https://{}{}", &self.host, path);
-        client
-            .get(&url)
-            .header("Grpc-Metadata-macaroon", &self.macaroon)
-            .send()
+        lnd_grpc_rust::connect(hex(tls_cert.into_bytes()), macaroon, host)
             .await
+            .unwrap()
     }
 
-    async fn post<T>(&self, path: String, json: T) -> Result<reqwest::Response, reqwest::Error> 
-    where
-        T: Serialize,
-    {
-        let client = Client::builder()
-            .danger_accept_invalid_certs(true) 
-            .build()?;
+    async fn get_necessary_permissions(&self) -> Vec<MacaroonPermission> {
+        let mut client = self.client().await;
 
-        let url = format!("https://{}{}", &self.host, path);
-        client
-            .post(&url)
-            .json(&json)
-            .header("Grpc-Metadata-macaroon", &self.macaroon)
-            .send()
+        let permissions = vec![
+            "https://api.amboss.space/graphql",
+            "/invoicesrpc.Invoices/AddHoldInvoice",
+            "/lnrpc.Lightning/CheckMacaroonPermissions",
+            "/lnrpc.Lightning/ConnectPeer",
+            "/lnrpc.Lightning/OpenChannel",
+        ];
+
+        let perm = client
+            .lightning()
+            .list_permissions(lnd_grpc_rust::lnrpc::ListPermissionsRequest {})
             .await
+            .expect("failed to list permissions")
+            .into_inner()
+            .method_permissions;
+
+        perm.iter()
+            .filter(|p| permissions.contains(&p.0.as_str()))
+            .flat_map(|p| p.1.permissions.clone())
+            .collect()
     }
 
+    async fn check_permissions(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // let mut client = self.client().await;
 
-    fn get_from_env_or_path(env_var: String, default_path: String) -> String {
-        match env::var(&env_var) {
-            Ok(val) => val,
-            Err(_) => {
-                let path = env::var(format!("{}_PATH", env_var)).unwrap_or(default_path);
-                // Read the file content and return it as a string
-                std::fs::read_to_string(path).expect("Failed to read file")
-            }
-        }
-    }
+        // let permissions = vec![
+        //     "https://api.amboss.space/graphql",
+        //     "/invoicesrpc.Invoices/AddHoldInvoice",
+        //     "/lnrpc.Lightning/CheckMacaroonPermissions",
+        //     "/lnrpc.Lightning/ConnectPeer",
+        //     "/lnrpc.Lightning/OpenChannel",
+        // ];
 
-    pub async fn check_connection(&self) -> Result<(), Box<dyn std::error::Error>> {
-       let res = self.get("/v1/macaroon/permissions".to_string()).await?.json::<serde_json::Value>().await?;
+        // let perm = client
+        //     .lightning()
+        //     .list_permissions(lnd_grpc_rust::lnrpc::ListPermissionsRequest {})
+        //     .await
+        //     .expect("failed to list permissions")
+        //     .into_inner()
+        //     .method_permissions;
 
-    //    println!("Response: {:?}", res);
-    
+        // let filtered = perm.iter().filter(|p| permissions.contains(&p.0.as_str()));
+
+        // let permissions = filtered.flat_map(|p| p.1.permissions.clone()).collect();
+
+        // let check = client
+        //     .lightning()
+        //     .check_macaroon_permissions(lnd_grpc_rust::lnrpc::CheckMacPermRequest {
+        //         permissions: vec![],
+        //         full_method: "/lnrpc.Lightning/OpenChannel".to_string(),
+        //         macaroon: self.macaroon.clone().into_bytes(),
+        //     })
+        //     .await?;
+
+        // println!("Permissions: {:?}", check);
+
         Ok(())
     }
 
-
     pub async fn sign(&self, message: String) -> Result<String, Box<dyn std::error::Error>> {
-        let response = self.post(
-            "/v1/signmessage".to_string(),
-            serde_json::json!({ "msg": message })
-        ).await?.json::<serde_json::Value>().await?;
+        let mut client = self.client().await;
 
-        Ok(response["signature"].as_str().unwrap().to_string())
+        let signature = client
+            .lightning()
+            .sign_message(lnd_grpc_rust::lnrpc::SignMessageRequest {
+                msg: message.into_bytes(),
+                single_hash: false,
+            })
+            .await?
+            .into_inner()
+            .signature;
+
+        Ok(signature)
     }
 }

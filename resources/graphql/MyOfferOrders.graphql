@@ -1,9 +1,0 @@
-query MyOfferOrders {
-  getOfferOrders {
-    list {
-      id
-      status
-      account
-    }
-  }
-}
