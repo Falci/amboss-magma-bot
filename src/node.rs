@@ -1,5 +1,8 @@
 use dotenvy::dotenv;
-use lnd_grpc_rust::{lnrpc::MacaroonPermission, LndClient};
+
+use lnd_grpc_rust::lnrpc;
+use lnd_grpc_rust::walletrpc;
+use lnd_grpc_rust::LndClient;
 use std::env;
 
 fn hex(bytes: Vec<u8>) -> String {
@@ -55,7 +58,7 @@ impl LNNode {
             tls_cert,
         };
 
-        node.check_permissions().await?;
+        // node.check_permissions().await?;
 
         Ok(node)
     }
@@ -70,6 +73,7 @@ impl LNNode {
             .unwrap()
     }
 
+    /*
     async fn get_necessary_permissions(&self) -> Vec<MacaroonPermission> {
         let mut client = self.client().await;
 
@@ -83,7 +87,7 @@ impl LNNode {
 
         let perm = client
             .lightning()
-            .list_permissions(lnd_grpc_rust::lnrpc::ListPermissionsRequest {})
+            .list_permissions(lnrpc::ListPermissionsRequest {})
             .await
             .expect("failed to list permissions")
             .into_inner()
@@ -96,48 +100,49 @@ impl LNNode {
     }
 
     async fn check_permissions(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // let mut client = self.client().await;
+    let mut client = self.client().await;
 
-        // let permissions = vec![
-        //     "https://api.amboss.space/graphql",
-        //     "/invoicesrpc.Invoices/AddHoldInvoice",
-        //     "/lnrpc.Lightning/CheckMacaroonPermissions",
-        //     "/lnrpc.Lightning/ConnectPeer",
-        //     "/lnrpc.Lightning/OpenChannel",
-        // ];
+    let permissions = vec![
+        "https://api.amboss.space/graphql",
+        "/invoicesrpc.Invoices/AddHoldInvoice",
+        "/lnrpc.Lightning/CheckMacaroonPermissions",
+        "/lnrpc.Lightning/ConnectPeer",
+        "/lnrpc.Lightning/OpenChannel",
+    ];
 
-        // let perm = client
-        //     .lightning()
-        //     .list_permissions(lnd_grpc_rust::lnrpc::ListPermissionsRequest {})
-        //     .await
-        //     .expect("failed to list permissions")
-        //     .into_inner()
-        //     .method_permissions;
+    let perm = client
+        .lightning()
+        .list_permissions(lnrpc::ListPermissionsRequest {})
+        .await
+        .expect("failed to list permissions")
+        .into_inner()
+        .method_permissions;
 
-        // let filtered = perm.iter().filter(|p| permissions.contains(&p.0.as_str()));
+    let filtered = perm.iter().filter(|p| permissions.contains(&p.0.as_str()));
 
-        // let permissions = filtered.flat_map(|p| p.1.permissions.clone()).collect();
+    let permissions = filtered.flat_map(|p| p.1.permissions.clone()).collect();
 
-        // let check = client
-        //     .lightning()
-        //     .check_macaroon_permissions(lnd_grpc_rust::lnrpc::CheckMacPermRequest {
-        //         permissions: vec![],
-        //         full_method: "/lnrpc.Lightning/OpenChannel".to_string(),
-        //         macaroon: self.macaroon.clone().into_bytes(),
-        //     })
-        //     .await?;
+    let check = client
+        .lightning()
+        .check_macaroon_permissions(lnrpc::CheckMacPermRequest {
+            permissions: vec![],
+            full_method: "/lnrpc.Lightning/OpenChannel".to_string(),
+            macaroon: self.macaroon.clone().into_bytes(),
+        })
+        .await?;
 
-        // println!("Permissions: {:?}", check);
+    println!("Permissions: {:?}", check);
 
         Ok(())
     }
+     */
 
     pub async fn sign(&self, message: String) -> Result<String, Box<dyn std::error::Error>> {
         let mut client = self.client().await;
 
         let signature = client
             .lightning()
-            .sign_message(lnd_grpc_rust::lnrpc::SignMessageRequest {
+            .sign_message(lnrpc::SignMessageRequest {
                 msg: message.into_bytes(),
                 single_hash: false,
             })
@@ -146,5 +151,90 @@ impl LNNode {
             .signature;
 
         Ok(signature)
+    }
+
+    pub async fn connect_to_node(
+        &self,
+        pubkey: String,
+    ) -> Result<lnrpc::ConnectPeerResponse, Box<dyn std::error::Error>> {
+        let mut client = self.client().await;
+
+        let peer = client
+            .lightning()
+            .connect_peer(lnrpc::ConnectPeerRequest {
+                addr: Some(lnrpc::LightningAddress {
+                    pubkey,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?
+            .into_inner();
+
+        println!("Peer: {:?}", peer);
+
+        Ok(peer)
+    }
+
+    pub async fn create_invoice(
+        &self,
+        amount: i64,
+        expiry: i64,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut client = self.client().await;
+
+        let invoice = client
+            .lightning()
+            .add_invoice(lnrpc::Invoice {
+                value: amount,
+                expiry: expiry,
+                ..Default::default()
+            })
+            .await?
+            .into_inner()
+            .payment_request;
+
+        Ok(invoice)
+    }
+
+    pub async fn open_channel(
+        &self,
+        node_pubkey: Vec<u8>,
+        sat_per_vbyte: u64,
+        local_funding_amount: i64,
+        outpoints: Vec<lnrpc::OutPoint>,
+    ) -> Result<lnrpc::ChannelPoint, Box<dyn std::error::Error>> {
+        let mut client = self.client().await;
+
+        let channel = client
+            .lightning()
+            .open_channel_sync(lnrpc::OpenChannelRequest {
+                sat_per_vbyte,
+                node_pubkey,
+                local_funding_amount,
+                outpoints,
+
+                ..Default::default()
+            })
+            .await?
+            .into_inner();
+
+        Ok(channel)
+    }
+
+    pub async fn list_unspent(&self) -> Result<Vec<lnrpc::Utxo>, Box<dyn std::error::Error>> {
+        let mut client = self.client().await;
+
+        let unspent = client
+            .wallet()
+            .list_unspent(walletrpc::ListUnspentRequest {
+                min_confs: 3,
+                ..Default::default()
+            })
+            .await?
+            .into_inner()
+            .utxos;
+
+        Ok(unspent)
     }
 }

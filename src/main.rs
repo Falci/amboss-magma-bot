@@ -1,17 +1,43 @@
-use magma::Api;
-use node::LNNode;
+use env_logger::Env;
+use log::debug;
+use std::env;
+use tokio::time::{sleep, Duration};
 
-mod magma;
+use api::Api;
+use node::LNNode;
+use service::Service;
+
+mod api;
+mod mempool;
 mod node;
+mod service;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init_from_env(Env::default().default_filter_or("debug"));
+
     let node = LNNode::from_env().await.unwrap();
-    let signer = |msg: String| async { node.sign(msg).await };
+    let magma = Api::from_signer(|msg: String| async { node.sign(msg).await })
+        .await
+        .unwrap();
 
-    let magma = Api::from_signer(signer).await.unwrap();
+    let interval = env::var("INTERVAL")
+        .unwrap_or_else(|_| "10".to_string())
+        .parse::<u64>()
+        .unwrap();
 
-    let offers = magma.get_orders().await.unwrap();
+    let service = Service::new(node, magma);
 
-    println!("{:?}", offers);
+    loop {
+        service.run().await.unwrap();
+
+        debug!("Sleeping for {} seconds...", interval);
+        sleep(Duration::from_secs(interval)).await;
+    }
+
+    // node.connect_to_node(
+    //     "0355157b4260b70c7f407a720c527a84e9522cd948e7a8ad92ae00773be52488e3".to_string(),
+    // )
+    // .await
+    // .unwrap();
 }

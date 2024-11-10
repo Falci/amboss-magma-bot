@@ -1,0 +1,3 @@
+mutation AddTransaction($orderId: String!, $txPoint: String!) {
+  sellerAddTransaction(id: $orderId, transaction: $txPoint)
+}

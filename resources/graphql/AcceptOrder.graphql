@@ -1,0 +1,3 @@
+mutation AcceptOrder($orderId: String!, $invoice: String!) {
+  sellerAcceptOrder(id: $orderId, request: $invoice)
+}

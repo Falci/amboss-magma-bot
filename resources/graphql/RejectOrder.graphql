@@ -1,0 +1,3 @@
+mutation RejectOrder($orderId: String!) {
+  sellerRejectOrder(id: $orderId)
+}
