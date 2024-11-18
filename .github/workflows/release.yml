@@ -15,13 +15,10 @@ jobs:
         include:
           - target: x86_64-pc-windows-gnu
             archive: zip
-            static_linking: true
           - target: x86_64-unknown-linux-musl
             archive: tar.gz tar.xz tar.zst
-            static_linking: false
           - target: x86_64-apple-darwin
             archive: zip
-            static_linking: true
     steps:
       - uses: actions/checkout@master
       - name: Compile and release
@@ -31,7 +28,7 @@ jobs:
         with:
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
-          STATIC_LINKING: ${{ matrix.static_linking }}
+          STATIC_LINKING: false
 
   publish:
     name: Publish to crates.io
