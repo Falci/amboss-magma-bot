@@ -1,5 +1,5 @@
 [package]
-name = "magma"
+name = "amboss-magma-bot"
 version = "0.1.0"
 edition = "2021"
 

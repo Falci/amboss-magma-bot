@@ -27,6 +27,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "amboss-magma-bot"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "env_logger 0.11.5",
+ "graphql_client",
+ "hex",
+ "lnd_grpc_rust",
+ "log",
+ "prost 0.13.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tonic 0.12.3",
+ "tonic-build 0.12.3",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1184,25 +1203,6 @@ name = "log"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
-
-[[package]]
-name = "magma"
-version = "0.1.0"
-dependencies = [
- "dotenvy",
- "env_logger 0.11.5",
- "graphql_client",
- "hex",
- "lnd_grpc_rust",
- "log",
- "prost 0.13.3",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tonic 0.12.3",
- "tonic-build 0.12.3",
-]
 
 [[package]]
 name = "matchit"
