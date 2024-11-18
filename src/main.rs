@@ -1,5 +1,5 @@
 use env_logger::Env;
-use log::debug;
+use log::{debug, info};
 use std::env;
 use tokio::time::{sleep, Duration};
 
@@ -27,6 +27,7 @@ async fn main() {
         .unwrap();
 
     let service = Service::new(node, magma);
+    info!("Bot is running...");
 
     loop {
         service.run().await.unwrap();

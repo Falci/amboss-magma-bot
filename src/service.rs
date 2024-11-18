@@ -17,7 +17,7 @@ impl Service {
     }
 
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Checking orders...");
+        debug!("Checking orders...");
 
         let orders = self.api.get_orders().await?;
 
@@ -34,7 +34,7 @@ impl Service {
                 }
 
                 _ => {
-                    info!("Skipping order: {} ({:?})", order.id, order.status);
+                    debug!("Skipping order: {} ({:?})", order.id, order.status);
                 }
             }
         }
