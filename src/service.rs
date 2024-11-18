@@ -103,7 +103,7 @@ impl Service {
 
         // 5. Confirm channel open
         self.api
-            .confirm_channel_open(order.id.to_string(), tx_point)
+            .confirm_channel_open(order.id.as_str(), tx_point.as_str())
             .await
     }
 
@@ -123,14 +123,17 @@ impl Service {
     ) -> Result<(), Box<dyn std::error::Error>> {
         info!("Processing new order: {}", order.id);
         // 1. Get buyer's address
+        let pubkey = order.account.clone();
+        let addresses = self.api.get_node_addresses(&pubkey).await?;
+        let addr = addresses.first().unwrap();
 
         // 2. Make sure we can connect to buyer's node
-        let buyer_info = self.node.connect_to_node(order.account.clone()).await;
+        let buyer_info = self.node.check_connect_to_node(addr, &pubkey).await;
         debug!("Successfully connected to buyer's node");
 
         if let Err(e) = buyer_info {
             warn!("Can't connect to buyer's node, rejecting order. {}", e);
-            self.api.reject_order(order.id.clone()).await?;
+            self.api.reject_order(order.id.as_str()).await?;
 
             return Ok(());
         }
@@ -146,7 +149,9 @@ impl Service {
         debug!("Invoice created: {}", invoice);
 
         // 4. Accept order
-        self.api.accept_order(order.id.clone(), invoice).await?;
+        self.api
+            .accept_order(order.id.as_str(), invoice.as_str())
+            .await?;
 
         Ok(())
     }

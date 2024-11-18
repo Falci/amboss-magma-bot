@@ -3,6 +3,7 @@ use dotenvy::dotenv;
 use lnd_grpc_rust::lnrpc;
 use lnd_grpc_rust::walletrpc;
 use lnd_grpc_rust::LndClient;
+use log::debug;
 use std::env;
 
 fn hex(bytes: Vec<u8>) -> String {
@@ -73,70 +74,6 @@ impl LNNode {
             .unwrap()
     }
 
-    /*
-    async fn get_necessary_permissions(&self) -> Vec<MacaroonPermission> {
-        let mut client = self.client().await;
-
-        let permissions = vec![
-            "https://api.amboss.space/graphql",
-            "/invoicesrpc.Invoices/AddHoldInvoice",
-            "/lnrpc.Lightning/CheckMacaroonPermissions",
-            "/lnrpc.Lightning/ConnectPeer",
-            "/lnrpc.Lightning/OpenChannel",
-        ];
-
-        let perm = client
-            .lightning()
-            .list_permissions(lnrpc::ListPermissionsRequest {})
-            .await
-            .expect("failed to list permissions")
-            .into_inner()
-            .method_permissions;
-
-        perm.iter()
-            .filter(|p| permissions.contains(&p.0.as_str()))
-            .flat_map(|p| p.1.permissions.clone())
-            .collect()
-    }
-
-    async fn check_permissions(&self) -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = self.client().await;
-
-    let permissions = vec![
-        "https://api.amboss.space/graphql",
-        "/invoicesrpc.Invoices/AddHoldInvoice",
-        "/lnrpc.Lightning/CheckMacaroonPermissions",
-        "/lnrpc.Lightning/ConnectPeer",
-        "/lnrpc.Lightning/OpenChannel",
-    ];
-
-    let perm = client
-        .lightning()
-        .list_permissions(lnrpc::ListPermissionsRequest {})
-        .await
-        .expect("failed to list permissions")
-        .into_inner()
-        .method_permissions;
-
-    let filtered = perm.iter().filter(|p| permissions.contains(&p.0.as_str()));
-
-    let permissions = filtered.flat_map(|p| p.1.permissions.clone()).collect();
-
-    let check = client
-        .lightning()
-        .check_macaroon_permissions(lnrpc::CheckMacPermRequest {
-            permissions: vec![],
-            full_method: "/lnrpc.Lightning/OpenChannel".to_string(),
-            macaroon: self.macaroon.clone().into_bytes(),
-        })
-        .await?;
-
-    println!("Permissions: {:?}", check);
-
-        Ok(())
-    }
-     */
-
     pub async fn sign(&self, message: String) -> Result<String, Box<dyn std::error::Error>> {
         let mut client = self.client().await;
 
@@ -155,25 +92,48 @@ impl LNNode {
 
     pub async fn connect_to_node(
         &self,
-        pubkey: String,
+        host: &str,
+        pubkey: &str,
     ) -> Result<lnrpc::ConnectPeerResponse, Box<dyn std::error::Error>> {
         let mut client = self.client().await;
+
+        debug!("Connecting to peer: {}", host);
 
         let peer = client
             .lightning()
             .connect_peer(lnrpc::ConnectPeerRequest {
                 addr: Some(lnrpc::LightningAddress {
-                    pubkey,
-                    ..Default::default()
+                    host: host.to_string(),
+                    pubkey: pubkey.to_string(),
                 }),
-                ..Default::default()
+                perm: false,
+                timeout: 120,
             })
             .await?
             .into_inner();
 
-        println!("Peer: {:?}", peer);
+        debug!("Peer: {:?}", peer);
 
         Ok(peer)
+    }
+
+    pub async fn check_connect_to_node(
+        &self,
+        host: &str,
+        pubkey: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match self.connect_to_node(host, pubkey).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                if e.to_string().contains("already connected to peer") {
+                    debug!("Already connected to peer: {}", host);
+                    Ok(())
+                } else {
+                    debug!("Error connecting to peer: {}", e);
+                    Err(e)
+                }
+            }
+        }
     }
 
     pub async fn create_invoice(

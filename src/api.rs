@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use graphql_client::{GraphQLQuery, Response};
-use log::{debug, info, trace, warn};
-use orders::{OrdersGetUserMarket, OrdersGetUserMarketOfferOrdersList};
+use log::{debug, info};
+use orders::OrdersGetUserMarketOfferOrdersList;
 use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
@@ -54,6 +54,14 @@ struct RejectOrder;
 )]
 struct AddTransaction;
 
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/GetNodeAddress.graphql",
+    response_derives = "Debug, Deserialize"
+)]
+struct GetNodeAddress;
+
 pub struct Api {
     api_key: String,
 }
@@ -92,9 +100,12 @@ impl Api {
 
         let info = api.get_sign_info().await?.get_sign_info;
         let signature = signer(info.message).await?;
-        let api_key = api.login(info.identifier, signature).await?.login;
+        let api_key = api
+            .login(info.identifier.as_str(), signature.as_str())
+            .await?
+            .login;
 
-        println!("MAGMA API key acquired");
+        info!("MAGMA API key acquired");
 
         Ok(Api::new(api_key))
     }
@@ -156,13 +167,13 @@ impl Api {
 
     async fn login(
         &self,
-        identifier: String,
-        signature: String,
+        identifier: &str,
+        signature: &str,
     ) -> Result<login::ResponseData, Box<dyn std::error::Error>> {
         debug!("Login");
         let request_body = Login::build_query(login::Variables {
-            identifier,
-            signature,
+            identifier: identifier.to_string(),
+            signature: signature.to_string(),
             token: Some(true),
         });
         self.request::<login::Variables, login::ResponseData>(request_body)
@@ -171,36 +182,66 @@ impl Api {
 
     pub async fn accept_order(
         &self,
-        order_id: String,
-        invoice: String,
+        order_id: &str,
+        invoice: &str,
     ) -> Result<accept_order::ResponseData, Box<dyn std::error::Error>> {
         debug!("AcceptOrder");
-        let request_body = AcceptOrder::build_query(accept_order::Variables { order_id, invoice });
+        let request_body = AcceptOrder::build_query(accept_order::Variables {
+            order_id: order_id.to_string(),
+            invoice: invoice.to_string(),
+        });
         self.request::<accept_order::Variables, accept_order::ResponseData>(request_body)
             .await
     }
 
     pub async fn reject_order(
         &self,
-        order_id: String,
+        order_id: &str,
     ) -> Result<reject_order::ResponseData, Box<dyn std::error::Error>> {
         debug!("RejectOrder");
-        let request_body = RejectOrder::build_query(reject_order::Variables { order_id });
+        let request_body = RejectOrder::build_query(reject_order::Variables {
+            order_id: order_id.to_string(),
+        });
         self.request::<reject_order::Variables, reject_order::ResponseData>(request_body)
             .await
     }
 
     pub async fn confirm_channel_open(
         &self,
-        order_id: String,
-        tx_point: String,
+        order_id: &str,
+        tx_point: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         debug!("ConfirmChannelOpen");
-        let request_body =
-            AddTransaction::build_query(add_transaction::Variables { order_id, tx_point });
+        let request_body = AddTransaction::build_query(add_transaction::Variables {
+            order_id: order_id.to_string(),
+            tx_point: tx_point.to_string(),
+        });
         self.request::<add_transaction::Variables, add_transaction::ResponseData>(request_body)
             .await?;
 
         Ok(())
+    }
+
+    pub async fn get_node_addresses(
+        &self,
+        pubkey: &str,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        debug!("GetNodeAddress");
+        let request_body = GetNodeAddress::build_query(get_node_address::Variables {
+            pubkey: pubkey.to_string(),
+        });
+        let addresses = self
+            .request::<get_node_address::Variables, get_node_address::ResponseData>(request_body)
+            .await?
+            .get_node
+            .graph_info
+            .node
+            .expect("Node not found")
+            .addresses
+            .iter()
+            .map(|a| a.addr.clone())
+            .collect::<Vec<String>>();
+
+        Ok(addresses)
     }
 }

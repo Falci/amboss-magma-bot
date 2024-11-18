@@ -1,0 +1,11 @@
+query GetNodeAddress($pubkey: String!) {
+  getNode(pubkey: $pubkey) {
+    graph_info {
+      node {
+        addresses {
+          addr
+        }
+      }
+    }
+  }
+}

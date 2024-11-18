@@ -34,10 +34,4 @@ async fn main() {
         debug!("Sleeping for {} seconds...", interval);
         sleep(Duration::from_secs(interval)).await;
     }
-
-    // node.connect_to_node(
-    //     "0355157b4260b70c7f407a720c527a84e9522cd948e7a8ad92ae00773be52488e3".to_string(),
-    // )
-    // .await
-    // .unwrap();
 }
