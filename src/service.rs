@@ -1,6 +1,7 @@
 use lnd_grpc_rust::lnrpc;
 use lnd_grpc_rust::lnrpc::channel_point::FundingTxid;
 use log::{debug, info, warn};
+use std::env;
 
 use crate::api::orders::OrderStatus;
 use crate::mempool;
@@ -121,21 +122,29 @@ impl Service {
         &self,
         order: &crate::api::orders::OrdersGetUserMarketOfferOrdersList,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let reject_if_off = env::var("REJECT_IF_BUYER_OFFLINE")
+            .map(|val| val == "true")
+            .unwrap_or(true);
+
         info!("Processing new order: {}", order.id);
-        // 1. Get buyer's address
-        let pubkey = order.account.clone();
-        let addresses = self.api.get_node_addresses(&pubkey).await?;
-        let addr = addresses.first().unwrap();
+        if reject_if_off {
+            // 1. Get buyer's address
+            let pubkey: String = order.account.clone();
+            let addresses = self.api.get_node_addresses(&pubkey).await?;
+            let addr = addresses.first().unwrap();
 
-        // 2. Make sure we can connect to buyer's node
-        let buyer_info = self.node.check_connect_to_node(addr, &pubkey).await;
-        debug!("Successfully connected to buyer's node");
+            // 2. Make sure we can connect to buyer's node
+            let buyer_info = self.node.check_connect_to_node(addr, &pubkey).await;
+            debug!("Successfully connected to buyer's node");
 
-        if let Err(e) = buyer_info {
-            warn!("Can't connect to buyer's node, rejecting order. {}", e);
-            self.api.reject_order(order.id.as_str()).await?;
+            if let Err(e) = buyer_info {
+                warn!("Can't connect to buyer's node, rejecting order. {}", e);
+                self.api.reject_order(order.id.as_str()).await?;
 
-            return Ok(());
+                return Ok(());
+            }
+        } else {
+            info!("Skipping buyer's node check");
         }
 
         // 3. Create invoice
