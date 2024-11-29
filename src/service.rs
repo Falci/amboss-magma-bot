@@ -145,7 +145,7 @@ impl Service {
             .unwrap()
             .parse::<i64>()
             .unwrap();
-        let invoice = self.node.create_invoice(order_cost, 3600).await?;
+        let invoice = self.node.create_invoice(order_cost, 172800).await?;
         debug!("Invoice created: {}", invoice);
 
         // 4. Accept order
@@ -181,6 +181,7 @@ fn calculate_utxos_required_and_fees(
         let amount_with_fees = channel_size as f64 + fee_cost;
 
         if amount_remaining <= amount_with_fees {
+            amount_remaining = 0.0;
             break;
         }
         amount_remaining -= utxo.amount_sat as f64;
