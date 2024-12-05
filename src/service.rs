@@ -1,11 +1,13 @@
 use lnd_grpc_rust::lnrpc;
 use lnd_grpc_rust::lnrpc::channel_point::FundingTxid;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use std::env;
 
 use crate::api::orders::OrderStatus;
 use crate::mempool;
 use crate::{api::Api, node::LNNode};
+
+use crate::api::cancel_order::OrderCancellationReason;
 
 pub struct Service {
     node: LNNode,
@@ -23,20 +25,28 @@ impl Service {
         let orders = self.api.get_orders().await?;
 
         for order in orders {
-            match order.status {
-                OrderStatus::WAITING_FOR_CHANNEL_OPEN => {
-                    info!("Opening channel for order: {}", order.id);
-                    self.open_channel(&order).await?;
-                }
+            let result = async {
+                match order.status {
+                    OrderStatus::WAITING_FOR_CHANNEL_OPEN => {
+                        info!("Opening channel for order: {}", order.id);
+                        self.open_channel(&order).await?;
+                    }
 
-                OrderStatus::WAITING_FOR_SELLER_APPROVAL => {
-                    info!("Approving order: {}", order.id);
-                    self.process_new_order(&order).await?;
-                }
+                    OrderStatus::WAITING_FOR_SELLER_APPROVAL => {
+                        info!("Approving order: {}", order.id);
+                        self.process_new_order(&order).await?;
+                    }
 
-                _ => {
-                    debug!("Skipping order: {} ({:?})", order.id, order.status);
+                    _ => {
+                        debug!("Skipping order: {} ({:?})", order.id, order.status);
+                    }
                 }
+                Ok::<(), Box<dyn std::error::Error>>(())
+            }
+            .await;
+
+            if let Err(e) = result {
+                error!("Error processing order {}: {:?}", order.id, e);
             }
         }
 
@@ -88,24 +98,82 @@ impl Service {
         info!("Expected profit: {} sats", order_cost as f64 - fee);
 
         // 4. Create channel
-        let channel_point = self
+        match self
             .node
             .open_channel(node_pubkey, sat_per_vbyte as u64, channel_size, outpoints)
-            .await?;
-
-        let tx_hex = match &channel_point.funding_txid {
-            Some(FundingTxid::FundingTxidBytes(bytes)) => hex::encode(bytes),
-            Some(FundingTxid::FundingTxidStr(txid_str)) => txid_str.clone(),
-            None => Err("No funding txid")?,
-        };
-
-        let tx_point = format!("{}:{}", tx_hex, channel_point.output_index);
-        info!("Channel opened: https://mempool.space/tx/{}", tx_point);
-
-        // 5. Confirm channel open
-        self.api
-            .confirm_channel_open(order.id.as_str(), tx_point.as_str())
             .await
+        {
+            Ok(channel_point) => {
+                // Handle success
+                let tx_hex = match &channel_point.funding_txid {
+                    Some(FundingTxid::FundingTxidBytes(bytes)) => hex::encode(bytes),
+                    Some(FundingTxid::FundingTxidStr(txid_str)) => txid_str.clone(),
+                    None => Err("No funding txid")?,
+                };
+
+                let tx_point = format!("{}:{}", tx_hex, channel_point.output_index);
+                info!("Channel opened: https://mempool.space/tx/{}", tx_point);
+
+                // 5. Confirm channel open
+                self.api
+                    .confirm_channel_open(order.id.as_str(), tx_point.as_str())
+                    .await
+            }
+            Err(e) => {
+                self.cancel_if_buyer_offline(order).await?;
+                Err(e)
+            }
+        }
+    }
+
+    async fn check_buyer_is_online(&self, pubkey: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let addresses = self.api.get_node_addresses(&pubkey).await?;
+        let addr = addresses.first().unwrap();
+
+        self.node.check_connect_to_node(addr, &pubkey).await?;
+        debug!("Successfully connected to buyer's node");
+
+        Ok(())
+    }
+
+    async fn cancel_if_buyer_offline(
+        &self,
+        order: &crate::api::orders::OrdersGetUserMarketOfferOrdersList,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let pubkey: String = order.account.clone();
+
+        let buyer_info = self.check_buyer_is_online(&pubkey).await;
+
+        if let Err(e) = buyer_info {
+            warn!("Can't connect to buyer's node, canceling order. {}", e);
+            self.api
+                .cancel_order(
+                    order.id.as_str(),
+                    OrderCancellationReason::UNABLE_TO_CONNECT_TO_NODE,
+                )
+                .await?;
+
+            return Err(e);
+        }
+
+        Ok(())
+    }
+
+    async fn reject_if_buyer_offline(
+        &self,
+        order: &crate::api::orders::OrdersGetUserMarketOfferOrdersList,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let pubkey: String = order.account.clone();
+
+        let buyer_info = self.check_buyer_is_online(&pubkey).await;
+
+        if let Err(e) = buyer_info {
+            warn!("Can't connect to buyer's node, rejecting order. {}", e);
+            // Add the missing line to reject the order
+            self.api.reject_order(order.id.as_str()).await?;
+        }
+
+        Ok(())
     }
 
     /**
@@ -128,21 +196,7 @@ impl Service {
 
         info!("Processing new order: {}", order.id);
         if reject_if_off {
-            // 1. Get buyer's address
-            let pubkey: String = order.account.clone();
-            let addresses = self.api.get_node_addresses(&pubkey).await?;
-            let addr = addresses.first().unwrap();
-
-            // 2. Make sure we can connect to buyer's node
-            let buyer_info = self.node.check_connect_to_node(addr, &pubkey).await;
-            debug!("Successfully connected to buyer's node");
-
-            if let Err(e) = buyer_info {
-                warn!("Can't connect to buyer's node, rejecting order. {}", e);
-                self.api.reject_order(order.id.as_str()).await?;
-
-                return Ok(());
-            }
+            self.reject_if_buyer_offline(order).await?;
         } else {
             info!("Skipping buyer's node check");
         }

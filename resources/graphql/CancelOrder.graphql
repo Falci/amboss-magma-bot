@@ -1,0 +1,6 @@
+# CHANNEL_SIZE_OUT_OF_BOUNDS
+# UNABLE_TO_CONNECT_TO_NODE
+# UNABLE_TO_PAY
+mutation CancelOrder($orderId: String!, $reason: OrderCancellationReason!) {
+  cancelOrder(id: $orderId, reason: $reason)
+}

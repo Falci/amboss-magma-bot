@@ -45,6 +45,13 @@ struct AcceptOrder;
     response_derives = "Debug, Deserialize"
 )]
 struct RejectOrder;
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/CancelOrder.graphql",
+    response_derives = "Debug, Deserialize"
+)]
+pub struct CancelOrder;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -203,6 +210,20 @@ impl Api {
             order_id: order_id.to_string(),
         });
         self.request::<reject_order::Variables, reject_order::ResponseData>(request_body)
+            .await
+    }
+
+    pub async fn cancel_order(
+        &self,
+        order_id: &str,
+        reason: cancel_order::OrderCancellationReason,
+    ) -> Result<cancel_order::ResponseData, Box<dyn std::error::Error>> {
+        debug!("CancelOrder");
+        let request_body = CancelOrder::build_query(cancel_order::Variables {
+            order_id: order_id.to_string(),
+            reason,
+        });
+        self.request::<cancel_order::Variables, cancel_order::ResponseData>(request_body)
             .await
     }
 
