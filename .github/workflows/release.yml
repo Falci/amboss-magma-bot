@@ -4,57 +4,96 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    name: Build and Package
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            ext: ''
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            ext: .exe
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            ext: ''
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-gnu
+
+    outputs:
+      release_tag: ${{ steps.set_tag.outputs.release_tag }}
+      is_tag: ${{ steps.set_tag.outputs.is_tag }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set output for release type
+        id: set_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "release_tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "release_tag=pre-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
 
-      - name: Install protoc
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
-
-      - name: Install protoc (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install protoc
-
-      - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Install dependencies
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          brew install openssl@1.1 protobuf
-          echo "OPENSSL_DIR=$(brew --prefix openssl@1.1)" >> $GITHUB_ENV
+          sudo apt update
+          sudo apt install -y pkg-config libssl-dev protobuf-compiler
 
-      - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Install cross for non-host targets
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+      - name: Build binary
+        run: |
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            cargo build --release --target ${{ matrix.target }}
+          else
+            cross build --release --target ${{ matrix.target }}
+          fi
+
+      - name: Package binary
+        run: |
+          BIN_NAME=amboss-magma-bot
+          TARGET=${{ matrix.target }}
+          OUT_DIR=release-${TARGET}
+          mkdir -p $OUT_DIR
+          cp target/${TARGET}/release/$BIN_NAME* $OUT_DIR/
+          tar -czvf ${BIN_NAME}-${TARGET}.tar.gz -C $OUT_DIR .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          files: target/${{ matrix.target }}/release/amboss-magma-bot${{ matrix.ext }}
+          name: ${{ matrix.target }}
+          path: amboss-magma-bot-${{ matrix.target }}.tar.gz
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.build.outputs.release_tag }}
+          tag_name: ${{ needs.build.outputs.release_tag }}
+          files: artifacts/**/amboss-magma-bot-*.tar.gz
+          prerelease: ${{ needs.build.outputs.is_tag != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
