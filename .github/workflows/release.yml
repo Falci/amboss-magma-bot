@@ -33,6 +33,12 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
+      - name: Install OpenSSL (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install openssl@1.1
+          echo "OPENSSL_DIR=$(brew --prefix openssl@1.1)" >> $GITHUB_ENV
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
