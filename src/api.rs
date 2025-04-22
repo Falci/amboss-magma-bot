@@ -1,11 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 use graphql_client::{GraphQLQuery, Response};
 use log::{debug, info};
 use orders::OrdersGetUserMarketOfferOrdersList;
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::{errors::ForbiddenError, traits::Signer};
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -69,8 +71,24 @@ struct AddTransaction;
 )]
 struct GetNodeAddress;
 
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "resources/graphql/schema.graphql",
+    query_path = "resources/graphql/CreateApiKey.graphql",
+    response_derives = "Debug, Deserialize"
+)]
+struct CreateApiKey;
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MagmaConfig {
+    pub api_key: Option<String>,
+    pub api_key_expiration: Option<f64>,
+}
+
+const API_KEY_FILE: &str = ".amboss_magma_bot.jwt";
+
 pub struct Api {
-    api_key: String,
+    config: MagmaConfig,
 }
 
 fn log_cost(extensions: Option<HashMap<String, Value>>) {
@@ -92,29 +110,78 @@ fn log_cost(extensions: Option<HashMap<String, Value>>) {
 }
 
 impl Api {
-    const API_URL: &'static str = "https://api.amboss.space/graphql";
+    const API_URL: &str = "https://api.amboss.space/graphql";
 
-    fn new(api_key: String) -> Api {
-        Api { api_key }
+    pub fn new(config: MagmaConfig) -> Self {
+        Api { config }
     }
 
-    pub async fn from_signer<F, S>(signer: F) -> Result<Api, Box<dyn std::error::Error>>
-    where
-        F: Fn(String) -> S,
-        S: std::future::Future<Output = Result<String, Box<dyn std::error::Error>>>,
-    {
-        let api = Api::new("".to_string());
+    pub async fn gen_new_api_key<T: Signer>(
+        &mut self,
+        node: &T,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.login_with_node(node).await?;
+        self.create_api_key().await?;
+        self.write_api_key_to_file()?;
+        Ok(())
+    }
 
-        let info = api.get_sign_info().await?.get_sign_info;
-        let signature = signer(info.message).await?;
-        let api_key = api
+    pub fn load_api_key_from_file(&mut self) -> Result<(), std::io::Error> {
+        fs::read_to_string(API_KEY_FILE).and_then(|api_key| {
+            self.set_api_key(Some(api_key));
+            Ok(())
+        })
+    }
+
+    fn write_api_key_to_file(&self) -> Result<(), std::io::Error> {
+        if let Some(api_key) = &self.config.api_key {
+            fs::write(API_KEY_FILE, api_key)?;
+        }
+        Ok(())
+    }
+
+    async fn login_with_node<T: Signer>(
+        &mut self,
+        signer: &T,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.set_api_key(None);
+
+        // Get the sign challenge
+        let info = self.get_sign_info().await?.get_sign_info;
+
+        // Sign the challenge
+        let signature = signer.sign(info.message.as_str()).await?;
+
+        // Get the login token
+        let api_key_from_node = self
             .login(info.identifier.as_str(), signature.as_str())
             .await?
             .login;
 
-        info!("MAGMA API key acquired");
+        info!("MAGMA API key acquired via login with node");
 
-        Ok(Api::new(api_key))
+        self.set_api_key(Some(api_key_from_node));
+
+        Ok(())
+    }
+
+    pub async fn create_api_key(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        debug!("CreateApiKey");
+        let request_body = CreateApiKey::build_query(create_api_key::Variables {
+            details: Some("Amboss Magma Bot".to_string()),
+            seconds: self.config.api_key_expiration.or(Some(2592000.0)),
+        });
+
+        let api_key = self
+            .request::<create_api_key::Variables, create_api_key::ResponseData>(request_body)
+            .await?
+            .create_api_key;
+
+        info!("MAGMA API key created");
+
+        self.set_api_key(Some(api_key));
+
+        Ok(())
     }
 
     async fn request<Var, Res>(
@@ -125,15 +192,14 @@ impl Api {
         Var: Serialize,
         Res: serde::de::DeserializeOwned,
     {
-        // Send the request asynchronously
-        let res = Client::new()
-            .post(Api::API_URL)
-            .header("Authorization", format!("Bearer {}", &self.api_key))
-            .json(&request_body)
-            .send()
-            .await?
-            .json::<Response<Res>>()
-            .await?;
+        let client = Client::new();
+        let mut request = client.post(Api::API_URL).json(&request_body);
+
+        if let Some(api_key) = &self.config.api_key {
+            request = request.header("Authorization", format!("Bearer {}", api_key));
+        }
+
+        let res = request.send().await?.json::<Response<Res>>().await?;
 
         // Process the response
         if let Some(data) = res.data {
@@ -141,7 +207,18 @@ impl Api {
 
             Ok(data)
         } else if let Some(errors) = res.errors {
-            Err(format!("GraphQL errors: {:?}", errors).into())
+            // check if "errors[].extensions.code === FORBIDDEN"
+            if errors.iter().any(|e| {
+                e.extensions.as_ref().map_or(false, |ext| {
+                    ext.get("code")
+                        .and_then(|code| code.as_str())
+                        .map_or(false, |code| code == "FORBIDDEN")
+                })
+            }) {
+                Err(ForbiddenError {}.into())
+            } else {
+                Err(format!("GraphQL error: {:?}", errors).into())
+            }
         } else {
             Err("Unknown error occurred".into())
         }
@@ -264,5 +341,9 @@ impl Api {
             .collect::<Vec<String>>();
 
         Ok(addresses)
+    }
+
+    pub fn set_api_key(&mut self, new_key: Option<String>) {
+        self.config.api_key = new_key;
     }
 }

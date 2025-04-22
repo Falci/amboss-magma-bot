@@ -1,91 +1,76 @@
-use dotenvy::dotenv;
-
+use crate::traits::Signer;
 use lnd_grpc_rust::lnrpc;
 use lnd_grpc_rust::walletrpc;
 use lnd_grpc_rust::LndClient;
 use log::debug;
-use std::env;
+use serde::de;
+use serde::Deserialize;
+use std::{cell::RefCell, fs, path::PathBuf};
+use tonic::client;
 
-fn hex(bytes: Vec<u8>) -> String {
-    bytes
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>()
+#[derive(Debug, Deserialize)]
+pub struct LNDConfig {
+    pub host: String,
+    pub macaroon_hex: Option<String>,
+    pub macaroon_path: Option<String>,
+    pub tls_cert_hex: Option<String>,
+    pub tls_cert_path: Option<String>,
 }
 
-fn get_host() -> String {
-    env::var("LND_HOST").unwrap_or("localhost:10009".to_string())
-}
-
-fn get_macaroon() -> String {
-    env::var("LND_MACAROON").unwrap_or_else(|_| {
-        let path = env::var("LND_MACAROON_PATH")
-            .unwrap_or_else(|_| "~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon".to_string());
-
-        let value =
-            std::fs::read(&path).expect(format!("Cannot load macaroon file {}", path).as_str());
-
-        hex(value)
-    })
-}
-
-fn get_tls_cert() -> String {
-    env::var("LND_TLS_CERT").unwrap_or_else(|_| {
-        let path = env::var("LND_TLS_CERT_PATH").unwrap_or_else(|_| "~/.lnd/tls.cert".to_string());
-
-        std::fs::read_to_string(&path)
-            .expect(format!("Cannot load TLS certificate file {}", path).as_str())
-    })
-}
-
-#[derive(Debug)]
 pub struct LNNode {
-    host: String,
-    macaroon: String,
-    tls_cert: String,
+    client: RefCell<LndClient>,
 }
 
 impl LNNode {
-    pub async fn from_env() -> Result<LNNode, Box<dyn std::error::Error>> {
-        dotenv().ok(); // Load environment variables from .env
-
-        let host = get_host();
-        let macaroon = get_macaroon();
-        let tls_cert = get_tls_cert();
-
-        let node = LNNode {
-            host,
-            macaroon,
-            tls_cert,
+    pub async fn new(config: LNDConfig) -> Result<Self, Box<dyn std::error::Error>> {
+        let macaroon_hex = match config.macaroon_hex {
+            Some(val) => val,
+            None => {
+                let path = config
+                    .macaroon_path
+                    .as_deref()
+                    .unwrap_or("~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon");
+                read_file_as_hex(path)?
+            }
         };
 
-        // node.check_permissions().await?;
+        let tls_cert_hex = match config.tls_cert_hex {
+            Some(cert) => hex::encode(cert.into_bytes()),
+            None => {
+                let path = config.tls_cert_path.as_deref().unwrap_or("~/.lnd/tls.cert");
+                read_file_as_hex(path)?
+            }
+        };
 
-        Ok(node)
-    }
+        debug!("Connecting to LND at {}", config.host);
 
-    async fn client(&self) -> LndClient {
-        let tls_cert = self.tls_cert.clone();
-        let macaroon = self.macaroon.clone();
-        let host = self.host.clone();
-
-        lnd_grpc_rust::connect(hex(tls_cert.into_bytes()), macaroon, host)
+        let client = lnd_grpc_rust::connect(tls_cert_hex, macaroon_hex, config.host)
             .await
-            .unwrap()
+            .unwrap();
+
+        debug!("Connected to LND");
+
+        Ok(Self {
+            client: RefCell::new(client),
+        })
     }
 
-    pub async fn sign(&self, message: String) -> Result<String, Box<dyn std::error::Error>> {
-        let mut client = self.client().await;
+    pub async fn sign_message(
+        &self,
+        message: impl AsRef<str>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let message_bytes = message.as_ref().as_bytes().to_vec();
 
-        let signature = client
-            .lightning()
-            .sign_message(lnrpc::SignMessageRequest {
-                msg: message.into_bytes(),
-                single_hash: false,
-            })
-            .await?
-            .into_inner()
-            .signature;
+        let mut client = self.client.borrow_mut();
+
+        let request = lnrpc::SignMessageRequest {
+            msg: message_bytes,
+            single_hash: false,
+        };
+
+        let response = client.lightning().sign_message(request).await?;
+
+        let signature = response.into_inner().signature;
 
         Ok(signature)
     }
@@ -95,7 +80,7 @@ impl LNNode {
         host: &str,
         pubkey: &str,
     ) -> Result<lnrpc::ConnectPeerResponse, Box<dyn std::error::Error>> {
-        let mut client = self.client().await;
+        let mut client = self.client.borrow_mut();
 
         debug!("Connecting to peer: {}", host);
 
@@ -141,7 +126,7 @@ impl LNNode {
         amount: i64,
         expiry: i64,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let mut client = self.client().await;
+        let mut client = self.client.borrow_mut();
 
         let invoice = client
             .lightning()
@@ -164,7 +149,7 @@ impl LNNode {
         local_funding_amount: i64,
         outpoints: Vec<lnrpc::OutPoint>,
     ) -> Result<lnrpc::ChannelPoint, Box<dyn std::error::Error>> {
-        let mut client = self.client().await;
+        let mut client = self.client.borrow_mut();
 
         let channel = client
             .lightning()
@@ -183,7 +168,7 @@ impl LNNode {
     }
 
     pub async fn list_unspent(&self) -> Result<Vec<lnrpc::Utxo>, Box<dyn std::error::Error>> {
-        let mut client = self.client().await;
+        let mut client = self.client.borrow_mut();
 
         let unspent = client
             .wallet()
@@ -197,4 +182,28 @@ impl LNNode {
 
         Ok(unspent)
     }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Signer for LNNode {
+    async fn sign(&self, message: &str) -> Result<String, Box<dyn std::error::Error>> {
+        debug!("Signing message: {}", message);
+        self.sign_message(message).await
+    }
+}
+
+fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(path.trim_start_matches("~/"));
+        }
+    }
+    PathBuf::from(path)
+}
+
+fn read_file_as_hex(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let expanded = expand_tilde(path);
+    let bytes = fs::read(&expanded)
+        .map_err(|e| format!("Cannot read file {}: {}", expanded.display(), e))?;
+    Ok(hex::encode(bytes))
 }

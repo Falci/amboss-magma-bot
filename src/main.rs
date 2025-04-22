@@ -1,38 +1,25 @@
-use env_logger::Env;
-use log::{debug, info};
-use std::env;
-use tokio::time::{sleep, Duration};
+#![allow(unused)]
+use std::fs;
 
 use api::Api;
+use config::load as load_config;
+use errors::ForbiddenError;
+use log::debug;
 use node::LNNode;
 use service::Service;
 
 mod api;
+mod config;
+mod errors;
 mod mempool;
 mod node;
 mod service;
+mod traits;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init_from_env(Env::default().default_filter_or("debug"));
+    env_logger::init();
 
-    let node = LNNode::from_env().await.unwrap();
-    let magma = Api::from_signer(|msg: String| async { node.sign(msg).await })
-        .await
-        .unwrap();
-
-    let interval = env::var("INTERVAL")
-        .unwrap_or_else(|_| "10".to_string())
-        .parse::<u64>()
-        .unwrap();
-
-    let service = Service::new(node, magma);
-    info!("Bot is running...");
-
-    loop {
-        service.run().await.unwrap();
-
-        debug!("Sleeping for {} seconds...", interval);
-        sleep(Duration::from_secs(interval)).await;
-    }
+    let mut service = Service::new().await;
+    service.start().await;
 }

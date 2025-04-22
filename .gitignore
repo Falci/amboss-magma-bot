@@ -1,5 +1,8 @@
 /target
-.env
 
 *.macaroon
 *.cert
+.amboss_magma_bot.jwt
+dev.config.yaml
+
+TODO.md

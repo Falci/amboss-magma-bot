@@ -2,8 +2,11 @@ use lnd_grpc_rust::lnrpc;
 use lnd_grpc_rust::lnrpc::channel_point::FundingTxid;
 use log::{debug, error, info, warn};
 use std::env;
+use tokio::time::{sleep, Duration};
 
 use crate::api::orders::OrderStatus;
+use crate::config;
+use crate::errors::ForbiddenError;
 use crate::mempool;
 use crate::{api::Api, node::LNNode};
 
@@ -12,14 +15,34 @@ use crate::api::cancel_order::OrderCancellationReason;
 pub struct Service {
     node: LNNode,
     api: Api,
+    interval: Option<u64>,
 }
 
 impl Service {
-    pub fn new(node: LNNode, api: Api) -> Self {
-        Self { node, api }
+    pub async fn new() -> Self {
+        let config = config::load().expect("Failed to load config");
+
+        let node = LNNode::new(config.lnd)
+            .await
+            .expect("Failed to create LNNode");
+
+        let missing_api_key = config.magma.api_key.is_none();
+        let mut api = Api::new(config.magma);
+
+        if missing_api_key {
+            if let Err(e) = api.load_api_key_from_file() {
+                api.gen_new_api_key(&node).await.unwrap();
+            }
+        }
+
+        Self {
+            node,
+            api,
+            interval: config.loop_interval,
+        }
     }
 
-    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Checking orders...");
 
         let orders = self.api.get_orders().await?;
@@ -51,6 +74,23 @@ impl Service {
         }
 
         Ok(())
+    }
+
+    pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        loop {
+            match self.run().await {
+                Ok(_) => {
+                    let interval = self.interval.unwrap_or(60).max(10);
+                    debug!("Sleeping for {} seconds...", interval);
+                    sleep(Duration::from_secs(interval)).await;
+                }
+                Err(e) => {
+                    if e.is::<ForbiddenError>() {
+                        self.api.gen_new_api_key(&self.node).await?;
+                    }
+                }
+            }
+        }
     }
 
     /**

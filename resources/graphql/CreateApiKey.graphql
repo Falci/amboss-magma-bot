@@ -1,0 +1,3 @@
+mutation CreateApiKey($details: String, $seconds: Float) {
+  createApiKey(details: $details, seconds: $seconds)
+}

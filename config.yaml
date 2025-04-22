@@ -1,0 +1,33 @@
+# Check every $loop_interval seconds for new orders
+# Default is 60 seconds
+loop_interval: 60
+magma:
+  # Magma API key. Optional. If not set, the bot will use login with node and generate a new API key.
+  api_key:
+
+  # If no api key is set, or it expires, the bot will use the node login to generate a new API key.
+  # New API keys are valid for $api_key_expiration seconds.
+  # Default is 2592000 seconds (30 days)
+  api_key_expiration: 2592000
+lnd:
+  # LND gRPC host and port
+  # Default is localhost:10009
+  host: localhost:10009
+
+  # Optional macaroon hex string.
+  # Default is to use path option
+  # If defined, it has precedence over macaroon_path
+  macaroon_hex:
+
+  # Optional macaroon path
+  # Default is `~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`
+  macaroon_path: ~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon
+
+  # Optional TLS cert hex string.
+  # Default is to use path option
+  # If defined, it has precedence over tls_cert_path
+  tls_cert_hex:
+
+  # Optional TLS cert path
+  # Default is `~/.lnd/tls.cert`
+  tls_cert_path: ~/.lnd/tls.cert
