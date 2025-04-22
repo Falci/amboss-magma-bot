@@ -34,6 +34,7 @@ jobs:
 
       - name: Set output for release type
         id: set_tag
+        shell: bash
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             echo "release_tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
