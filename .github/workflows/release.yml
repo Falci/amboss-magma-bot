@@ -33,10 +33,18 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Install OpenSSL (macOS only)
+      - name: Install protoc
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Install protoc (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install protoc
+
+      - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install openssl@1.1
+          brew install openssl@1.1 protobuf
           echo "OPENSSL_DIR=$(brew --prefix openssl@1.1)" >> $GITHUB_ENV
 
       - name: Build release binary
