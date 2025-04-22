@@ -4,42 +4,100 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            ext: ''
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            ext: .exe
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            ext: ''
+          - target: x86_64-unknown-linux-gnu
+            use_cross: false
+          - target: aarch64-unknown-linux-gnu
+            use_cross: true
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      release_tag: ${{ steps.set_tag.outputs.release_tag }}
+      is_tag: ${{ steps.set_tag.outputs.is_tag }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set output for release type
+        id: set_tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "release_tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "release_tag=pre-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y pkg-config libssl-dev protobuf-compiler
 
       - name: Set up Rust
-        uses: actions/setup-rust@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          rust-version: stable
           targets: ${{ matrix.target }}
 
-      - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+      - name: Install cross (if needed)
+        if: matrix.use_cross == true
+        uses: taiki-e/install-action@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          files: target/${{ matrix.target }}/release/amboss-magma-bot${{ matrix.ext }}
+          tool: cross
+
+      - name: Build
+        run: |
+          if [[ "${{ matrix.use_cross }}" == "true" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+            strip target/${{ matrix.target }}/release/amboss-magma-bot
+          fi
+        shell: bash
+
+      - name: Package binary
+        shell: bash
+        run: |
+          BIN_NAME=amboss-magma-bot
+          TARGET=${{ matrix.target }}
+          OUT_DIR=release-${TARGET}
+          mkdir -p $OUT_DIR
+          cp target/${TARGET}/release/${BIN_NAME} $OUT_DIR/
+          tar -czvf ${BIN_NAME}-${TARGET}.tar.gz -C $OUT_DIR .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: amboss-magma-bot-${{ matrix.target }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.build.outputs.release_tag }}
+          tag_name: ${{ needs.build.outputs.release_tag }}
+          files: artifacts/**/amboss-magma-bot-*.tar.gz
+          prerelease: ${{ needs.build.outputs.is_tag != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
