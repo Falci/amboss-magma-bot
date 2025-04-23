@@ -20,11 +20,12 @@ tonic = "0.13"
 prost = "0.13"  
 tokio = { version = "1", features = ["full"] }   
 lnd_grpc_rust = "2.10"
+openssl = { version = "0.10", features = ["vendored"] }
 
 # GraphQL:
 graphql_client= "0.14.0"
-reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1.0"
+reqwest = { version = "0.12", features = ["rustls-tls", "blocking", "json"] }  # or keep `default-tls` if needed
 
 [build-dependencies]
 tonic-build = "0.13"
