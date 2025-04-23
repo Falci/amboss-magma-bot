@@ -25,7 +25,10 @@ openssl = { version = "0.10", features = ["vendored"] }
 # GraphQL:
 graphql_client= "0.14.0"
 serde_json = "1.0"
-reqwest = { version = "0.12", features = ["rustls-tls", "blocking", "json"] }  # or keep `default-tls` if needed
+reqwest = { version = "0.12", features = ["rustls-tls", "blocking", "json"] } 
+
 
 [build-dependencies]
 tonic-build = "0.13"
+prost-build = "0.13"
+protoc-bin-vendored = "3"
