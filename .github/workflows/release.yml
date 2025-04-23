@@ -61,12 +61,9 @@ jobs:
             cross build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
+            strip target/${{ matrix.target }}/release/amboss-magma-bot
           fi
         shell: bash
-
-      - name: Strip release binary
-        run: |
-          strip target/${{ matrix.target }}/release/amboss-magma-bot
 
       - name: Package binary
         shell: bash
