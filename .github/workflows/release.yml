@@ -64,6 +64,10 @@ jobs:
           fi
         shell: bash
 
+      - name: Strip release binary
+        run: |
+          strip target/${{ matrix.target }}/release/amboss-magma-bot
+
       - name: Package binary
         shell: bash
         run: |
