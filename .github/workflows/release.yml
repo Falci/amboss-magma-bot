@@ -9,6 +9,14 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            use_cross: false
+          - target: aarch64-unknown-linux-gnu
+            use_cross: true
+
     runs-on: ubuntu-latest
 
     outputs:
@@ -39,16 +47,28 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-gnu
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (if needed)
+        if: matrix.use_cross == true
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
 
       - name: Build
-        run: cargo build --release --target x86_64-unknown-linux-gnu
+        run: |
+          if [[ "${{ matrix.use_cross }}" == "true" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+        shell: bash
 
       - name: Package binary
         shell: bash
         run: |
           BIN_NAME=amboss-magma-bot
-          TARGET=x86_64-unknown-linux-gnu
+          TARGET=${{ matrix.target }}
           OUT_DIR=release-${TARGET}
           mkdir -p $OUT_DIR
           cp target/${TARGET}/release/${BIN_NAME} $OUT_DIR/
@@ -57,8 +77,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-artifact
-          path: amboss-magma-bot-x86_64-unknown-linux-gnu.tar.gz
+          name: ${{ matrix.target }}
+          path: amboss-magma-bot-${{ matrix.target }}.tar.gz
 
   release:
     needs: build
